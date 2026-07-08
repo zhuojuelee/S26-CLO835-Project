@@ -1,0 +1,35 @@
+{
+  "name": "s26-clo835-project",
+  "version": "0.1.0",
+  "private": true,
+  "description": "CLO835 async job orchestration project with KEDA, BullMQ, Redis, and native Kubernetes API workers.",
+  "license": "UNLICENSED",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "yarn workspaces foreach -A --topological-dev run build",
+    "typecheck": "yarn workspaces foreach -A --topological-dev run typecheck",
+    "lint": "yarn workspaces foreach -A run lint",
+    "dev:client": "yarn workspace @clo835-project/client dev",
+    "dev:main": "yarn workspace @clo835-project/main-server dev",
+    "dev:orchestrator": "yarn workspace @clo835-project/task-orchestrator dev",
+    "dev:worker": "yarn workspace @clo835-project/bullmq-worker dev",
+    "dev:ephemeral": "yarn workspace @clo835-project/ephemeral-worker dev",
+    "compose:build": "docker compose --env-file .env -f deployment/docker-compose.yml build",
+    "compose:up": "docker compose --env-file .env -f deployment/docker-compose.yml up --build -d",
+    "compose:logs": "docker compose --env-file .env -f deployment/docker-compose.yml logs -f",
+    "compose:down": "docker compose --env-file .env -f deployment/docker-compose.yml down --remove-orphans",
+    "compose:run:ephemeral": "docker compose --env-file .env -f deployment/docker-compose.yml run --rm ephemeral-worker"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0"
+  },
+  "volta": {
+    "node": "26.5.0",
+    "yarn": "4.9.2"
+  },
+  "packageManager": "yarn@4.9.2"
+}

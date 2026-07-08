@@ -1,0 +1,113 @@
+name: ${COMPOSE_PROJECT_NAME:-clo835-project}
+
+services:
+  client:
+    image: ${IMAGE_REPOSITORY_PREFIX:-clo835-project}/client:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: deployment/client/Dockerfile
+      target: build
+    command: yarn workspace @clo835-project/client dev
+    ports:
+      - "${CLIENT_HOST_PORT:-80}:5173"
+    volumes:
+      - ../packages/client/src:/app/packages/client/src
+      - ../packages/client/index.html:/app/packages/client/index.html
+      - ../packages/client/vite.config.ts:/app/packages/client/vite.config.ts
+      - ../packages/shared/src:/app/packages/shared/src
+
+  main-server:
+    image: ${IMAGE_REPOSITORY_PREFIX:-clo835-project}/main-server:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: deployment/main-server/Dockerfile
+      target: build
+    command: yarn workspace @clo835-project/main-server dev
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      ORCHESTRATOR_URL: http://task-orchestrator:3001
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      QUEUE_NAME: clo835-jobs
+    ports:
+      - "${MAIN_SERVER_HOST_PORT:-3000}:3000"
+    volumes:
+      - ../packages/main-server/src:/app/packages/main-server/src
+      - ../packages/shared/src:/app/packages/shared/src
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  task-orchestrator:
+    image: ${IMAGE_REPOSITORY_PREFIX:-clo835-project}/task-orchestrator:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: deployment/task-orchestrator/Dockerfile
+      target: build
+    command: yarn workspace @clo835-project/task-orchestrator dev
+    environment:
+      NODE_ENV: development
+      PORT: "3001"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      QUEUE_NAME: clo835-jobs
+      STUDENT_ID: local-student
+      NAMESPACE: local
+    ports:
+      - "${TASK_ORCHESTRATOR_HOST_PORT:-3001}:3001"
+    volumes:
+      - ../packages/task-orchestrator/src:/app/packages/task-orchestrator/src
+      - ../packages/shared/src:/app/packages/shared/src
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  bullmq-worker:
+    image: ${IMAGE_REPOSITORY_PREFIX:-clo835-project}/bullmq-worker:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: deployment/bullmq-worker/Dockerfile
+      target: build
+    command: yarn workspace @clo835-project/bullmq-worker dev
+    environment:
+      NODE_ENV: development
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      QUEUE_NAME: clo835-jobs
+      STUDENT_ID: local-student
+    volumes:
+      - ../packages/bullmq-worker/src:/app/packages/bullmq-worker/src
+      - ../packages/shared/src:/app/packages/shared/src
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  ephemeral-worker:
+    image: ${IMAGE_REPOSITORY_PREFIX:-clo835-project}/ephemeral-worker:${IMAGE_TAG:-local}
+    build:
+      context: ..
+      dockerfile: deployment/ephemeral-worker/Dockerfile
+      target: build
+    command: yarn workspace @clo835-project/ephemeral-worker dev
+    profiles:
+      - manual
+    environment:
+      NODE_ENV: development
+      STUDENT_ID: local-student
+      DURATION_SECONDS: "5"
+    volumes:
+      - ../packages/ephemeral-worker/src:/app/packages/ephemeral-worker/src
+      - ../packages/shared/src:/app/packages/shared/src
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s

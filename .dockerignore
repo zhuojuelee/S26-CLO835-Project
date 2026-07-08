@@ -1,0 +1,17 @@
+.git
+.DS_Store
+node_modules
+packages/*/node_modules
+dist
+packages/*/dist
+.vite
+.turbo
+coverage
+*.tsbuildinfo
+.env
+.env.*
+evidence
+Project_*.docx
+.yarn/cache
+.yarn/unplugged
+.yarn/install-state.gz
