@@ -10,7 +10,12 @@ export default defineConfig({
   report: false,
   hash: false,
   deps: {
-    alwaysBundle: [/^@clo835-project\/shared(?:\/.*)?$/, /^bullmq(?:\/.*)?$/, /^ioredis(?:\/.*)?$/, 'supports-color'],
+    alwaysBundle: [
+      /^@clo835-project\/shared(?:\/.*)?$/,
+      /^bullmq(?:\/.*)?$/,
+      /^ioredis(?:\/.*)?$/,
+      'supports-color',
+    ],
     onlyBundle: false,
   },
 });

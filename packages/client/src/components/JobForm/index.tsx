@@ -14,9 +14,9 @@ export default function JobForm() {
 
   useEffect(() => {
     if (jobType === 'queue') {
-      setMessage(`Hello from BullMQ - This job ran for ${durationSeconds} seconds`);
+      setMessage('Hello BullMQ Worker');
     } else {
-      setMessage(`Hello from Ephemeral job - This job ran for ${durationSeconds} seconds`);
+      setMessage('Hello Ephemeral Worker');
     }
   }, [jobType]);
 
@@ -40,7 +40,10 @@ export default function JobForm() {
     if (isNaN(parsedDurationSeconds)) return false;
 
     return (
-      !isSubmitting && message.trim().length > 0 && Number.isFinite(parsedDurationSeconds) && parsedDurationSeconds > 0
+      !isSubmitting &&
+      message.trim().length > 0 &&
+      Number.isFinite(parsedDurationSeconds) &&
+      parsedDurationSeconds > 0
     );
   }, [durationSeconds, isSubmitting, message]);
 
@@ -72,7 +75,11 @@ export default function JobForm() {
   return (
     <Stack spacing={2}>
       <Paper component="form" onSubmit={onSubmitClick} sx={{ p: 2 }} variant="outlined">
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { xs: 'stretch', sm: 'center' } }}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={2}
+          sx={{ alignItems: { xs: 'stretch', sm: 'center' } }}
+        >
           <TextField
             label="Type"
             name="jobType"
@@ -117,7 +124,7 @@ export default function JobForm() {
             type="submit"
             variant="contained"
           >
-            Queue Job
+            Start
           </Button>
         </Stack>
       </Paper>
