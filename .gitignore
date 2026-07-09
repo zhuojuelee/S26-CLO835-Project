@@ -17,3 +17,4 @@ yarn-error.log*
 .vite/
 .turbo/
 *.tsbuildinfo
+__pycache__

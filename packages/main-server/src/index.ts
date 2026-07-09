@@ -1,26 +1,27 @@
-import cors from "cors";
-import express from "express";
-import { Redis } from "ioredis";
+import cors from 'cors';
+import express from 'express';
+import { Redis } from 'ioredis';
 import {
   JOB_KEY_PREFIX,
+  type CreateJobResponse,
   type CreateQueueJobRequest,
+  type DeleteJobsResponse,
   type HealthResponse,
   type JobRecord,
   type JobsResponse,
-  type CreateQueueJobResponse
-} from "@clo835-project/shared";
+} from '@clo835-project/shared';
 
 const port = Number(process.env.MAIN_SERVER_PORT ?? process.env.PORT ?? 3000);
-const serviceName = "main-server";
-const redisHost = process.env.REDIS_HOST ?? "localhost";
+const serviceName = 'main-server';
+const redisHost = process.env.REDIS_HOST ?? 'localhost';
 const redisPort = Number(process.env.REDIS_PORT ?? 6379);
-const orchestratorUrl = process.env.ORCHESTRATOR_URL ?? "http://localhost:3001";
+const orchestratorUrl = process.env.ORCHESTRATOR_URL ?? 'http://localhost:3001';
 
 const redis = new Redis({
   host: redisHost,
   port: redisPort,
   maxRetriesPerRequest: 1,
-  lazyConnect: true
+  lazyConnect: true,
 });
 
 const app = express();
@@ -29,25 +30,19 @@ app.use(express.json());
 
 async function scanJobKeys(): Promise<string[]> {
   const keys: string[] = [];
-  let cursor = "0";
+  let cursor = '0';
 
   do {
-    const [nextCursor, foundKeys] = await redis.scan(
-      cursor,
-      "MATCH",
-      `${JOB_KEY_PREFIX}*`,
-      "COUNT",
-      100
-    );
+    const [nextCursor, foundKeys] = await redis.scan(cursor, 'MATCH', `${JOB_KEY_PREFIX}*`, 'COUNT', 100);
 
     cursor = nextCursor;
     keys.push(...foundKeys);
-  } while (cursor !== "0");
+  } while (cursor !== '0');
 
   return keys;
 }
 
-app.get("/health", async (_request, response) => {
+app.get('/health', async (_request, response) => {
   let redisOk = false;
 
   try {
@@ -60,13 +55,13 @@ app.get("/health", async (_request, response) => {
   const body: HealthResponse = {
     service: serviceName,
     ok: redisOk,
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
   };
 
   response.status(redisOk ? 200 : 503).json(body);
 });
 
-app.get("/jobs", async (_request, response) => {
+app.get('/jobs', async (_request, response) => {
   try {
     const keys = await scanJobKeys();
 
@@ -84,50 +79,77 @@ app.get("/jobs", async (_request, response) => {
       }
 
       jobs.push({
-        [keys[index]]: JSON.parse(value) as JobRecord
+        [keys[index]]: JSON.parse(value) as JobRecord,
       });
     }
 
     response.json(jobs);
   } catch (error) {
     response.status(500).json({
-      error: error instanceof Error ? error.message : "Failed to read jobs"
+      error: error instanceof Error ? error.message : 'Failed to read jobs',
     });
   }
 });
 
-app.post("/jobs", async (request, response) => {
+app.delete('/jobs', async (_request, response) => {
+  try {
+    const keys = await scanJobKeys();
+
+    if (keys.length === 0) {
+      const body: DeleteJobsResponse = {
+        deleted: 0,
+      };
+
+      response.json(body);
+      return;
+    }
+
+    const deleted = await redis.del(...keys);
+    const body: DeleteJobsResponse = {
+      deleted,
+    };
+
+    response.json(body);
+  } catch (error) {
+    response.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to delete jobs',
+    });
+  }
+});
+
+app.post('/jobs', async (request, response) => {
   const body = request.body as Partial<CreateQueueJobRequest>;
   const durationSeconds = Number(body.durationSeconds);
-  const message = typeof body.message === "string" ? body.message.trim() : "";
+  const message = body.message?.trim();
+  const jobType = body.jobType;
 
-  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || message.length === 0) {
+  if (!Number.isFinite(durationSeconds) || !message || !jobType) {
     response.status(400).json({
-      error: "durationSeconds and message are required"
+      error: 'durationSeconds, message, and jobType are required',
     });
     return;
   }
 
   try {
-    const orchestratorResponse = await fetch(`${orchestratorUrl}/queueJob`, {
-      method: "POST",
+    const orchestratorEndpoint = jobType === 'ephemeral' ? 'spawnJob' : 'queueJob';
+    const orchestratorResponse = await fetch(`${orchestratorUrl}/${orchestratorEndpoint}`, {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json"
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         durationSeconds,
-        message
-      } satisfies CreateQueueJobRequest)
+        message,
+        jobType,
+      } satisfies CreateQueueJobRequest),
     });
     const responseText = await orchestratorResponse.text();
-    const responseBody = responseText
-      ? JSON.parse(responseText) as CreateQueueJobResponse | { error: string }
-      : {};
+    const responseBody = responseText ? (JSON.parse(responseText) as CreateJobResponse | { error: string }) : {};
 
     response.status(orchestratorResponse.status).json(responseBody);
   } catch (error) {
     response.status(502).json({
-      error: error instanceof Error ? error.message : "Failed to queue job"
+      error: error instanceof Error ? error.message : 'Failed to queue job',
     });
   }
 });

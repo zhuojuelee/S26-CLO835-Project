@@ -1,6 +1,6 @@
-import { Container, Stack, Typography } from "@mui/material";
-import JobForm from "./components/JobForm";
-import QueueJobDetailsTable from "./components/QueueJobDetailsTable";
+import { Container, Stack, Typography } from '@mui/material';
+import JobForm from './components/JobForm';
+import QueueJobDetailsTable from './components/QueueJobDetailsTable';
 
 export default function App() {
   return (

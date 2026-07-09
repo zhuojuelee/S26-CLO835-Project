@@ -44,4 +44,6 @@ yarn compose:down
 
 The service Dockerfiles still have final runtime stages for production images. When we add the EC2/kind deployment flow, we can build those images directly from the Dockerfiles and tag them for Docker Hub or GHCR.
 
+The client is deployed as part of the same cluster. Its production image builds the Vite static assets and serves them from nginx, so the final Kubernetes deployment can expose the client through the same ingress, ALB, or EC2 reverse proxy strategy used for the rest of the project.
+
 Do not bake application secrets into Docker images. Images should be generic and reusable; secrets belong at runtime through Kubernetes Secrets, GitHub Actions secrets for CI credentials, or local uncommitted environment files.

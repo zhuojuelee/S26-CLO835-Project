@@ -43,11 +43,16 @@ services:
     command: yarn workspace @clo835-project/task-orchestrator dev
     env_file:
       - ../.env
+    environment:
+      EPHEMERAL_WORKER_IMAGE: ${IMAGE_REPOSITORY_PREFIX:-clo835-project}/ephemeral-worker:${IMAGE_TAG:-local}
+      LOCAL_DOCKER_NETWORK: ${COMPOSE_PROJECT_NAME:-clo835-project}_default
+      DOCKER_SOCKET_PATH: /var/run/docker.sock
     ports:
       - "${TASK_ORCHESTRATOR_HOST_PORT:-3001}:${TASK_ORCHESTRATOR_PORT:-3001}"
     volumes:
       - ../packages/task-orchestrator/src:/app/packages/task-orchestrator/src
       - ../packages/shared/src:/app/packages/shared/src
+      - ${DOCKER_SOCKET_HOST_PATH:-/var/run/docker.sock}:/var/run/docker.sock
     depends_on:
       redis:
         condition: service_healthy
