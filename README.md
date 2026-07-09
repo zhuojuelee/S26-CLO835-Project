@@ -32,7 +32,7 @@ The system runs on a kind cluster hosted on an EC2 instance. The browser client 
 
 Service Diagram:
 
-[!image](images/architecture.png)
+![CLO835 async job orchestration architecture](images/architecture.png)
 
 The client calls the main server only; the main server forwards long-running work to the task orchestrator and responds immediately.
 
