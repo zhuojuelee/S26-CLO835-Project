@@ -1,10 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
 import {
   Alert,
   Box,
-  Button,
   Chip,
   CircularProgress,
   FormControlLabel,
@@ -18,20 +16,13 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { useAtom, useAtomValue } from 'jotai';
 import type { DeleteJobsResponse, JobRecord } from '@clo835-project/shared';
-import {
-  adminSecretAtom,
-  adminSessionAtom,
-  clearAdminSecretAtom,
-  hasAdminPrivilegeAtom,
-  setAdminSecretAtom,
-} from '../../atoms/adminAtom';
 import { jobsAtom, jobsPollingEnabledAtom } from '../../atoms/jobAtom';
+import ClearCacheConfirmationModal from '../ClearCacheConfirmationModal';
 
 const jobsEndpoint = '/api/jobs';
 
@@ -67,16 +58,8 @@ function getJobTypeColor(jobType: JobRecord['jobType'] | undefined) {
 
 export default function QueueJobDetailsTable() {
   const jobsQuery = useAtomValue(jobsAtom);
-  const adminSecret = useAtomValue(adminSecretAtom);
-  const adminSession = useAtomValue(adminSessionAtom);
-  const hasAdminPrivilege = useAtomValue(hasAdminPrivilegeAtom);
-
-  // admin atoms
-  const clearAdminSecret = useSetAtom(clearAdminSecretAtom);
-  const setAdminSecret = useSetAtom(setAdminSecretAtom);
-
   const [isPollingEnabled, setIsPollingEnabled] = useAtom(jobsPollingEnabledAtom);
-  const [adminSecretInput, setAdminSecretInput] = useState('');
+  const [isClearJobsModalOpen, setIsClearJobsModalOpen] = useState(false);
   const [isClearingJobs, setIsClearingJobs] = useState(false);
   const [clearJobsError, setClearJobsError] = useState<string | null>(null);
 
@@ -89,62 +72,35 @@ export default function QueueJobDetailsTable() {
     });
   }, [jobsQuery.data]);
 
-  useEffect(() => {
-    if (!adminSession) {
-      return;
-    }
+  const clearJobs = useCallback(
+    async (adminSecret: string) => {
+      try {
+        setIsClearingJobs(true);
+        setClearJobsError(null);
 
-    const expiresInMs = adminSession.expiresAt - Date.now();
+        const response = await fetch(jobsEndpoint, {
+          method: 'DELETE',
+          headers: {
+            'x-admin-secret': adminSecret,
+          },
+        });
 
-    if (expiresInMs <= 0) {
-      clearAdminSecret();
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      clearAdminSecret();
-    }, expiresInMs);
-
-    return () => {
-      window.clearTimeout(timeout);
-    };
-  }, [adminSession, clearAdminSecret]);
-
-  const unlockAdmin = useCallback(() => {
-    setAdminSecret(adminSecretInput);
-    setAdminSecretInput('');
-  }, [adminSecretInput, setAdminSecret]);
-
-  const clearJobs = useCallback(async () => {
-    if (!adminSession) return;
-
-    try {
-      setIsClearingJobs(true);
-      setClearJobsError(null);
-
-      const response = await fetch(jobsEndpoint, {
-        method: 'DELETE',
-        headers: {
-          'x-admin-secret': adminSecret,
-        },
-      });
-
-      if (!response.ok) {
-        if (response.status === 403) {
-          clearAdminSecret();
+        if (!response.ok) {
+          throw new Error(`Failed to clear jobs: ${response.status}`);
         }
 
-        throw new Error(`Failed to clear jobs: ${response.status}`);
+        (await response.json()) as DeleteJobsResponse;
+        await jobsQuery.refetch();
+        return true;
+      } catch (error) {
+        setClearJobsError(error instanceof Error ? error.message : 'Failed to clear jobs');
+        return false;
+      } finally {
+        setIsClearingJobs(false);
       }
-
-      (await response.json()) as DeleteJobsResponse;
-      await jobsQuery.refetch();
-    } catch (error) {
-      setClearJobsError(error instanceof Error ? error.message : 'Failed to clear jobs');
-    } finally {
-      setIsClearingJobs(false);
-    }
-  }, [adminSecret, clearAdminSecret, jobsQuery]);
+    },
+    [jobsQuery],
+  );
 
   return (
     <Stack spacing={2}>
@@ -160,37 +116,16 @@ export default function QueueJobDetailsTable() {
           Jobs
         </Typography>
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-          <TextField
-            label={hasAdminPrivilege ? 'Admin active' : 'Admin secret'}
-            onChange={(event) => {
-              setAdminSecretInput(event.target.value);
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                unlockAdmin();
-              }
-            }}
-            size="small"
-            sx={{ width: 180 }}
-            type="password"
-            value={adminSecretInput}
-          />
-          <Button
-            disabled={!adminSecretInput.trim()}
-            onClick={unlockAdmin}
-            size="small"
-            startIcon={<LockOpenIcon />}
-            variant="outlined"
-          >
-            Unlock
-          </Button>
-          <Tooltip title={hasAdminPrivilege ? 'Clear Redis job records' : 'Admin secret required'}>
+          <Tooltip title={rows.length === 0 ? 'No jobs to clear' : 'Clear Redis job records'}>
             <span>
               <IconButton
                 aria-label="Clear Redis job records"
                 color="error"
-                disabled={!hasAdminPrivilege || isClearingJobs || rows.length === 0}
-                onClick={clearJobs}
+                disabled={isClearingJobs || rows.length === 0}
+                onClick={() => {
+                  setClearJobsError(null);
+                  setIsClearJobsModalOpen(true);
+                }}
                 size="small"
               >
                 {isClearingJobs ? <CircularProgress color="inherit" size={18} /> : <DeleteOutlineIcon />}
@@ -212,13 +147,24 @@ export default function QueueJobDetailsTable() {
         </Stack>
       </Box>
 
+      <ClearCacheConfirmationModal
+        error={clearJobsError}
+        isSubmitting={isClearingJobs}
+        onClose={() => {
+          if (!isClearingJobs) {
+            setIsClearJobsModalOpen(false);
+            setClearJobsError(null);
+          }
+        }}
+        onConfirm={clearJobs}
+        open={isClearJobsModalOpen}
+      />
+
       {jobsQuery.isError ? (
         <Alert severity="error">
           {jobsQuery.error instanceof Error ? jobsQuery.error.message : 'Failed to fetch jobs'}
         </Alert>
       ) : null}
-
-      {clearJobsError ? <Alert severity="error">{clearJobsError}</Alert> : null}
 
       <TableContainer component={Paper} variant="outlined">
         <Table size="small" aria-label="Jobs">

@@ -1,7 +1,7 @@
 name: ${COMPOSE_PROJECT_NAME:-clo835-project}
 
 services:
-  nginx:
+  nginx-dev:
     image: nginx:1.27-alpine
     ports:
       - "80:80"

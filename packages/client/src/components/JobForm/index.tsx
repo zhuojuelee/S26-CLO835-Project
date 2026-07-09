@@ -14,9 +14,9 @@ export default function JobForm() {
 
   useEffect(() => {
     if (jobType === 'queue') {
-      setMessage(`Hello from BullMQ - This run for ${durationSeconds} seconds`);
+      setMessage(`Hello from BullMQ - This job ran for ${durationSeconds} seconds`);
     } else {
-      setMessage(`Hello from Ephemeral job - This run for ${durationSeconds} seconds`);
+      setMessage(`Hello from Ephemeral job - This job ran for ${durationSeconds} seconds`);
     }
   }, [jobType]);
 
