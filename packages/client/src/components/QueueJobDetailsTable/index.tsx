@@ -25,6 +25,7 @@ import { jobsAtom, jobsPollingEnabledAtom } from '../../atoms/jobAtom';
 import ClearCacheConfirmationModal from '../ClearCacheConfirmationModal';
 
 const jobsEndpoint = '/api/jobs';
+const emptyValue = '-';
 
 type JobRow = {
   redisKey: string;
@@ -54,6 +55,23 @@ function getJobTypeColor(jobType: JobRecord['jobType'] | undefined) {
     default:
       return 'primary';
   }
+}
+
+function formatTimestamp(timestamp: number | undefined): string {
+  if (!timestamp) {
+    return emptyValue;
+  }
+
+  return new Date(timestamp).toLocaleString();
+}
+
+function getTimingRows(job: JobRecord): Array<[string, string]> {
+  return [
+    ['Created', formatTimestamp(job.createdAt)],
+    ['Updated', formatTimestamp(job.updatedAt)],
+    ['Started', formatTimestamp(job.startedAt)],
+    ['Ended', formatTimestamp(job.endedAt)],
+  ];
 }
 
 export default function QueueJobDetailsTable() {
@@ -115,7 +133,11 @@ export default function QueueJobDetailsTable() {
         <Typography component="h2" variant="h6">
           Jobs
         </Typography>
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}
+        >
           <Tooltip title={rows.length === 0 ? 'No jobs to clear' : 'Clear Redis job records'}>
             <span>
               <IconButton
@@ -174,6 +196,8 @@ export default function QueueJobDetailsTable() {
               <TableCell>Type</TableCell>
               <TableCell>Status</TableCell>
               <TableCell align="right">Duration</TableCell>
+              <TableCell align="right">Retries</TableCell>
+              <TableCell>Timing</TableCell>
               <TableCell>Message</TableCell>
               <TableCell>Output</TableCell>
             </TableRow>
@@ -181,7 +205,7 @@ export default function QueueJobDetailsTable() {
           <TableBody>
             {jobsQuery.isPending ? (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={8}>
                   <Box
                     sx={{
                       alignItems: 'center',
@@ -201,7 +225,7 @@ export default function QueueJobDetailsTable() {
 
             {!jobsQuery.isPending && rows.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6}>
+                <TableCell colSpan={8}>
                   <Typography color="text.secondary" sx={{ py: 2 }} variant="body2">
                     No jobs
                   </Typography>
@@ -224,11 +248,36 @@ export default function QueueJobDetailsTable() {
                   <Chip color={getJobTypeColor(job.jobType)} label={job.jobType ?? 'queue'} size="small" />
                 </TableCell>
                 <TableCell>
-                  <Chip color={getStatusColor(job.status)} label={job.status} size="small" variant="outlined" />
+                  <Chip
+                    color={getStatusColor(job.status)}
+                    label={job.status}
+                    size="small"
+                    variant="outlined"
+                  />
                 </TableCell>
                 <TableCell align="right">{job.data.durationSeconds}s</TableCell>
+                <TableCell align="right">
+                  {job.retries}/{job.maxRetries}
+                </TableCell>
+                <TableCell sx={{ minWidth: 220 }}>
+                  <Stack spacing={0.25}>
+                    {getTimingRows(job).map(([label, value]) => (
+                      <Typography color="text.secondary" component="div" key={label} variant="caption">
+                        <Box
+                          component="span"
+                          sx={{ color: 'text.primary', display: 'inline-block', minWidth: 52 }}
+                        >
+                          {label}
+                        </Box>
+                        {value}
+                      </Typography>
+                    ))}
+                  </Stack>
+                </TableCell>
                 <TableCell sx={{ maxWidth: 220, overflowWrap: 'anywhere' }}>{job.data.message}</TableCell>
-                <TableCell sx={{ maxWidth: 360, overflowWrap: 'anywhere' }}>{job.results.output || '-'}</TableCell>
+                <TableCell sx={{ maxWidth: 360, overflowWrap: 'anywhere' }}>
+                  {job.results.output || emptyValue}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

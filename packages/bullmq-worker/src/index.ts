@@ -2,6 +2,12 @@ import { hostname } from 'node:os';
 import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { JOB_QUEUE_NAME, getJobKey, type JobRecord, type QueueJobPayload } from '@clo835-project/shared';
+import {
+  completeJobRecord,
+  failJobRecord,
+  startJobRecord,
+  updateJobProgress,
+} from '@clo835-project/shared/utils';
 
 const serviceName = 'bullmq-worker';
 const redisHost = process.env.REDIS_HOST ?? 'localhost';
@@ -42,6 +48,14 @@ async function writeJobRecord(jobId: string, record: JobRecord): Promise<void> {
   await redis.set(getJobKey(jobId), JSON.stringify(record));
 }
 
+function getStartOutput(record: JobRecord): string {
+  if (record.retries === 0) {
+    return `Started by ${workerId}`;
+  }
+
+  return `Started retry ${record.retries}/${record.maxRetries} by ${workerId}`;
+}
+
 const worker = new Worker<QueueJobPayload>(
   queueName,
   async (job) => {
@@ -51,49 +65,33 @@ const worker = new Worker<QueueJobPayload>(
     try {
       const totalSeconds = Math.max(1, record.data.durationSeconds);
 
-      record = {
-        ...record,
-        status: 'inProgress',
-        results: {
-          output: `Started by ${workerId}`,
-        },
-      };
+      let inProgressRecord = startJobRecord(record, getStartOutput(record));
+      record = inProgressRecord;
       await writeJobRecord(jobId, record);
 
       for (let second = 1; second <= totalSeconds; second += 1) {
         await sleep(1000);
 
-        record = {
-          ...record,
-          results: {
-            output: `Processed ${second}/${totalSeconds} seconds by ${workerId}`,
-          },
-        };
+        inProgressRecord = updateJobProgress(
+          inProgressRecord,
+          `Processed ${second}/${totalSeconds} seconds by ${workerId}`,
+        );
+        record = inProgressRecord;
         await writeJobRecord(jobId, record);
       }
 
-      record = {
-        ...record,
-        status: 'completed',
-        results: {
-          output: `${record.data.message} completed by ${workerId}`,
-        },
-      };
+      record = completeJobRecord(inProgressRecord, `${record.data.message} completed by ${workerId}`);
       await writeJobRecord(jobId, record);
     } catch (error) {
-      record = {
-        ...record,
-        status: 'failed',
-        results: {
-          output: error instanceof Error ? error.message : 'Unknown worker error',
-        },
-      };
+      record = failJobRecord(record, error instanceof Error ? error.message : 'Unknown worker error');
       await writeJobRecord(jobId, record);
       throw error;
     }
   },
   {
     connection,
+    // A stalled BullMQ attempt should fail; the orchestrator owns stale-job retry scheduling.
+    maxStalledCount: 0,
   },
 );
 
@@ -103,6 +101,10 @@ worker.on('completed', (job) => {
 
 worker.on('failed', (job, error) => {
   console.error(`${serviceName} failed job ${job?.data.jobId ?? 'unknown'}: ${error.message}`);
+});
+
+worker.on('stalled', (jobId) => {
+  console.warn(`${serviceName} detected stalled queue job ${jobId}`);
 });
 
 worker.on('error', (error) => {

@@ -29,6 +29,72 @@ def write_job_record(client: redis.Redis, job_id: str, record: dict[str, Any]) -
     client.set(get_job_key(job_id), json.dumps(record))
 
 
+def now_ms() -> int:
+    return int(time.time() * 1000)
+
+
+def get_start_output(record: dict[str, Any]) -> str:
+    retries = int(record.get("retries", 0))
+
+    if retries == 0:
+        return f"Started by {WORKER_NAME}"
+
+    return f"Started retry {retries}/{record.get('maxRetries', retries)} by {WORKER_NAME}"
+
+
+def start_job_record(record: dict[str, Any]) -> dict[str, Any]:
+    now = now_ms()
+    started_record = {
+        **record,
+        "status": "inProgress",
+        "results": {
+            "output": get_start_output(record),
+        },
+        "updatedAt": now,
+        "startedAt": now,
+    }
+    started_record.pop("endedAt", None)
+    return started_record
+
+
+def update_job_progress(record: dict[str, Any], output: str) -> dict[str, Any]:
+    return {
+        **record,
+        "results": {
+            "output": output,
+        },
+        "updatedAt": now_ms(),
+    }
+
+
+def complete_job_record(record: dict[str, Any]) -> dict[str, Any]:
+    now = now_ms()
+    return {
+        **record,
+        "status": "completed",
+        "results": {
+            "output": f"{record['data']['message']} completed by {WORKER_NAME}",
+        },
+        "updatedAt": now,
+        "endedAt": now,
+    }
+
+
+def fail_job_record(record: dict[str, Any], error: Exception) -> dict[str, Any]:
+    now = now_ms()
+    failed_record = {
+        **record,
+        "status": "failed",
+        "results": {
+            "output": str(error),
+        },
+        "updatedAt": now,
+        "endedAt": now,
+    }
+
+    return failed_record
+
+
 def main() -> int:
     redis_host = os.getenv("REDIS_HOST", "localhost")
     redis_port = int(os.getenv("REDIS_PORT", "6379"))
@@ -46,43 +112,23 @@ def main() -> int:
     try:
         duration_seconds = max(1, int(record["data"]["durationSeconds"]))
 
-        record = {
-            **record,
-            "status": "inProgress",
-            "results": {
-                "output": f"Started by {WORKER_NAME}",
-            },
-        }
+        record = start_job_record(record)
         write_job_record(client, job_id, record)
 
         for second in range(1, duration_seconds + 1):
             time.sleep(1)
-            record = {
-                **record,
-                "results": {
-                    "output": f"Processed {second}/{duration_seconds} seconds by {WORKER_NAME}",
-                },
-            }
+            record = update_job_progress(
+                record,
+                f"Processed {second}/{duration_seconds} seconds by {WORKER_NAME}",
+            )
             write_job_record(client, job_id, record)
 
-        record = {
-            **record,
-            "status": "completed",
-            "results": {
-                "output": f"{record['data']['message']} completed by {WORKER_NAME}",
-            },
-        }
+        record = complete_job_record(record)
         write_job_record(client, job_id, record)
         print(f"{WORKER_NAME} completed job {job_id}")
         return 0
     except Exception as error:
-        record = {
-            **record,
-            "status": "failed",
-            "results": {
-                "output": str(error),
-            },
-        }
+        record = fail_job_record(record, error)
         write_job_record(client, job_id, record)
         print(f"{WORKER_NAME} failed job {job_id}: {error}", file=sys.stderr)
         return 1

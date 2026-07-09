@@ -4,7 +4,7 @@ import QueueJobDetailsTable from './components/QueueJobDetailsTable';
 
 export default function App() {
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
+    <Container maxWidth="xl" sx={{ py: 4 }}>
       <Stack spacing={3}>
         <Typography component="h1" variant="h4">
           CLO835 Async Job Orchestration

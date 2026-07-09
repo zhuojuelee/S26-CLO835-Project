@@ -5,6 +5,16 @@ export const JOB_KEY_PREFIX = 'job:';
 
 export type Status = 'pending' | 'inProgress' | 'completed' | 'failed';
 export type JobStatus = Status;
+export type RetryableJobStatus = Exclude<JobStatus, 'completed'>;
+export type UnixTimestampMilliseconds = number;
+
+export const DEFAULT_JOB_MAX_RETRIES = 3;
+export const JOB_STALE_DURATION_MULTIPLIER = 10;
+export const RETRYABLE_JOB_STATUSES = [
+  'pending',
+  'inProgress',
+  'failed',
+] as const satisfies readonly RetryableJobStatus[];
 
 export interface JobData {
   durationSeconds: number;
@@ -15,13 +25,42 @@ export interface JobResults {
   output: string;
 }
 
-export interface JobRecord {
+interface BaseJobRecord {
   jobId: string;
   jobType: JobType;
-  status: JobStatus;
   data: JobData;
   results: JobResults;
+  retries: number;
+  maxRetries: number;
+  createdAt: UnixTimestampMilliseconds;
+  updatedAt: UnixTimestampMilliseconds;
 }
+
+export interface PendingJobRecord extends BaseJobRecord {
+  status: 'pending';
+  startedAt?: never;
+  endedAt?: never;
+}
+
+export interface InProgressJobRecord extends BaseJobRecord {
+  status: 'inProgress';
+  startedAt: UnixTimestampMilliseconds;
+  endedAt?: never;
+}
+
+export interface CompletedJobRecord extends BaseJobRecord {
+  status: 'completed';
+  startedAt: UnixTimestampMilliseconds;
+  endedAt: UnixTimestampMilliseconds;
+}
+
+export interface FailedJobRecord extends BaseJobRecord {
+  status: 'failed';
+  startedAt?: UnixTimestampMilliseconds;
+  endedAt: UnixTimestampMilliseconds;
+}
+
+export type JobRecord = PendingJobRecord | InProgressJobRecord | CompletedJobRecord | FailedJobRecord;
 
 export interface QueueJobPayload {
   jobId: string;
@@ -33,13 +72,13 @@ export interface CreateQueueJobRequest {
   jobType: JobType;
 }
 
-export interface CreateQueueJobResponse extends JobRecord {
+export type CreateQueueJobResponse = JobRecord & {
   queueName: string;
-}
+};
 
-export interface CreateSpawnJobResponse extends JobRecord {
+export type CreateSpawnJobResponse = JobRecord & {
   runner: string;
-}
+};
 
 export type CreateJobResponse = CreateQueueJobResponse | CreateSpawnJobResponse;
 
@@ -58,3 +97,5 @@ export interface HealthResponse {
   ok: boolean;
   timestamp: string;
 }
+
+export * from './utils/index.js';
