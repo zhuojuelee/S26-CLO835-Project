@@ -16,6 +16,7 @@ const serviceName = 'main-server';
 const redisHost = process.env.REDIS_HOST ?? 'localhost';
 const redisPort = Number(process.env.REDIS_PORT ?? 6379);
 const orchestratorUrl = process.env.ORCHESTRATOR_URL ?? 'http://localhost:3001';
+const adminSecret = process.env.ADMIN_SECRET;
 
 const redis = new Redis({
   host: redisHost,
@@ -91,7 +92,14 @@ app.get('/jobs', async (_request, response) => {
   }
 });
 
-app.delete('/jobs', async (_request, response) => {
+app.delete('/jobs', async (request, response) => {
+  if (!adminSecret || request.header('x-admin-secret') !== adminSecret) {
+    response.status(403).json({
+      error: 'Admin access required',
+    });
+    return;
+  }
+
   try {
     const keys = await scanJobKeys();
 

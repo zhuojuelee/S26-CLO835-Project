@@ -19,11 +19,12 @@ cp .env.example .env
 yarn compose:up
 ```
 
-The Compose stack is for local development. It runs the client through Vite and the Node services through `tsx watch` with source bind mounts.
+The Compose stack is for local development. It runs nginx as the browser entrypoint, proxies `/` to Vite for hot reload, proxies `/api` to the main server, and runs the Node services through `tsx watch` with source bind mounts.
 
 Services:
 
-- Client: http://localhost:8080
+- Nginx browser entrypoint: http://localhost
+- Direct Vite client: http://localhost:5173
 - Main Server: http://localhost:3000/health
 - Task Orchestrator: http://localhost:3001/health
 - Redis: localhost:6379
@@ -44,6 +45,7 @@ yarn compose:down
 
 The service Dockerfiles still have final runtime stages for production images. When we add the EC2/kind deployment flow, we can build those images directly from the Dockerfiles and tag them for Docker Hub or GHCR.
 
-The client is deployed as part of the same cluster. Its production image builds the Vite static assets and serves them from nginx, so the final Kubernetes deployment can expose the client through the same ingress, ALB, or EC2 reverse proxy strategy used for the rest of the project.
+The production nginx image builds the Vite static assets and serves them directly from nginx. It also proxies `/api` to the main-server Service, so production does not need a separate client container running next to nginx.
 
-Do not bake application secrets into Docker images. Images should be generic and reusable; secrets belong at runtime through Kubernetes Secrets, GitHub Actions secrets for CI credentials, or local uncommitted environment files.
+> [!WARNING]
+> Do not bake application secrets into Docker images. Images should be generic and reusable; secrets belong at runtime through Kubernetes Secrets, GitHub Actions secrets for CI credentials, or local uncommitted environment files. The `ADMIN_SECRET` value used for demo-only admin actions should be provided as a Kubernetes Secret in production.

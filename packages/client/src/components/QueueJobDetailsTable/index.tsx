@@ -1,8 +1,10 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import LockOpenIcon from '@mui/icons-material/LockOpen';
 import {
   Alert,
   Box,
+  Button,
   Chip,
   CircularProgress,
   FormControlLabel,
@@ -16,14 +18,22 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TextField,
   Tooltip,
   Typography,
 } from '@mui/material';
-import { useAtom, useAtomValue } from 'jotai';
+import { useAtom, useAtomValue, useSetAtom } from 'jotai';
 import type { DeleteJobsResponse, JobRecord } from '@clo835-project/shared';
-import { jobsAtom, jobsPollingEnabledAtom } from '../../atoms/jobsAtom';
+import {
+  adminSecretAtom,
+  adminSessionAtom,
+  clearAdminSecretAtom,
+  hasAdminPrivilegeAtom,
+  setAdminSecretAtom,
+} from '../../atoms/adminAtom';
+import { jobsAtom, jobsPollingEnabledAtom } from '../../atoms/jobAtom';
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+const jobsEndpoint = '/api/jobs';
 
 type JobRow = {
   redisKey: string;
@@ -57,9 +67,19 @@ function getJobTypeColor(jobType: JobRecord['jobType'] | undefined) {
 
 export default function QueueJobDetailsTable() {
   const jobsQuery = useAtomValue(jobsAtom);
+  const adminSecret = useAtomValue(adminSecretAtom);
+  const adminSession = useAtomValue(adminSessionAtom);
+  const hasAdminPrivilege = useAtomValue(hasAdminPrivilegeAtom);
+
+  // admin atoms
+  const clearAdminSecret = useSetAtom(clearAdminSecretAtom);
+  const setAdminSecret = useSetAtom(setAdminSecretAtom);
+
   const [isPollingEnabled, setIsPollingEnabled] = useAtom(jobsPollingEnabledAtom);
+  const [adminSecretInput, setAdminSecretInput] = useState('');
   const [isClearingJobs, setIsClearingJobs] = useState(false);
   const [clearJobsError, setClearJobsError] = useState<string | null>(null);
+
   const rows = useMemo<JobRow[]>(() => {
     return (jobsQuery.data ?? []).flatMap((jobRecord) => {
       return Object.entries(jobRecord).map(([redisKey, job]) => ({
@@ -68,16 +88,52 @@ export default function QueueJobDetailsTable() {
       }));
     });
   }, [jobsQuery.data]);
+
+  useEffect(() => {
+    if (!adminSession) {
+      return;
+    }
+
+    const expiresInMs = adminSession.expiresAt - Date.now();
+
+    if (expiresInMs <= 0) {
+      clearAdminSecret();
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      clearAdminSecret();
+    }, expiresInMs);
+
+    return () => {
+      window.clearTimeout(timeout);
+    };
+  }, [adminSession, clearAdminSecret]);
+
+  const unlockAdmin = useCallback(() => {
+    setAdminSecret(adminSecretInput);
+    setAdminSecretInput('');
+  }, [adminSecretInput, setAdminSecret]);
+
   const clearJobs = useCallback(async () => {
+    if (!adminSession) return;
+
     try {
       setIsClearingJobs(true);
       setClearJobsError(null);
 
-      const response = await fetch(`${apiBaseUrl}/jobs`, {
+      const response = await fetch(jobsEndpoint, {
         method: 'DELETE',
+        headers: {
+          'x-admin-secret': adminSecret,
+        },
       });
 
       if (!response.ok) {
+        if (response.status === 403) {
+          clearAdminSecret();
+        }
+
         throw new Error(`Failed to clear jobs: ${response.status}`);
       }
 
@@ -88,7 +144,7 @@ export default function QueueJobDetailsTable() {
     } finally {
       setIsClearingJobs(false);
     }
-  }, [jobsQuery]);
+  }, [adminSecret, clearAdminSecret, jobsQuery]);
 
   return (
     <Stack spacing={2}>
@@ -103,13 +159,37 @@ export default function QueueJobDetailsTable() {
         <Typography component="h2" variant="h6">
           Jobs
         </Typography>
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-          <Tooltip title="Clear Redis job records">
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <TextField
+            label={hasAdminPrivilege ? 'Admin active' : 'Admin secret'}
+            onChange={(event) => {
+              setAdminSecretInput(event.target.value);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                unlockAdmin();
+              }
+            }}
+            size="small"
+            sx={{ width: 180 }}
+            type="password"
+            value={adminSecretInput}
+          />
+          <Button
+            disabled={!adminSecretInput.trim()}
+            onClick={unlockAdmin}
+            size="small"
+            startIcon={<LockOpenIcon />}
+            variant="outlined"
+          >
+            Unlock
+          </Button>
+          <Tooltip title={hasAdminPrivilege ? 'Clear Redis job records' : 'Admin secret required'}>
             <span>
               <IconButton
                 aria-label="Clear Redis job records"
                 color="error"
-                disabled={isClearingJobs || rows.length === 0}
+                disabled={!hasAdminPrivilege || isClearingJobs || rows.length === 0}
                 onClick={clearJobs}
                 size="small"
               >

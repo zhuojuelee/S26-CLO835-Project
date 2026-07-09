@@ -3,7 +3,7 @@ import SendIcon from '@mui/icons-material/Send';
 import { Alert, Button, MenuItem, Paper, Stack, TextField } from '@mui/material';
 import type { CreateQueueJobRequest, JobType } from '@clo835-project/shared';
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
+const jobsEndpoint = '/api/jobs';
 
 export default function JobForm() {
   const [jobType, setJobType] = useState<JobType>('queue');
@@ -21,7 +21,7 @@ export default function JobForm() {
   }, [jobType]);
 
   const createJob = useCallback(async (request: CreateQueueJobRequest) => {
-    const response = await fetch(`${apiBaseUrl}/jobs`, {
+    const response = await fetch(jobsEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
