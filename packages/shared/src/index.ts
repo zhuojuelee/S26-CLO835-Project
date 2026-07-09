@@ -35,6 +35,8 @@ export interface CreateQueueJobResponse extends JobRecord {
   queueName: string;
 }
 
+export type JobsResponse = Array<Record<string, JobRecord>>;
+
 export function getJobKey(jobId: string): string {
   return `${JOB_KEY_PREFIX}${jobId}`;
 }

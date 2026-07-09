@@ -3,14 +3,18 @@ import express from "express";
 import { Redis } from "ioredis";
 import {
   JOB_KEY_PREFIX,
+  type CreateQueueJobRequest,
   type HealthResponse,
-  type JobRecord
+  type JobRecord,
+  type JobsResponse,
+  type CreateQueueJobResponse
 } from "@clo835-project/shared";
 
 const port = Number(process.env.MAIN_SERVER_PORT ?? process.env.PORT ?? 3000);
 const serviceName = "main-server";
 const redisHost = process.env.REDIS_HOST ?? "localhost";
 const redisPort = Number(process.env.REDIS_PORT ?? 6379);
+const orchestratorUrl = process.env.ORCHESTRATOR_URL ?? "http://localhost:3001";
 
 const redis = new Redis({
   host: redisHost,
@@ -72,7 +76,7 @@ app.get("/jobs", async (_request, response) => {
     }
 
     const values = await redis.mget(keys);
-    const jobs: Array<Record<string, JobRecord>> = [];
+    const jobs: JobsResponse = [];
 
     for (const [index, value] of values.entries()) {
       if (!value) {
@@ -88,6 +92,42 @@ app.get("/jobs", async (_request, response) => {
   } catch (error) {
     response.status(500).json({
       error: error instanceof Error ? error.message : "Failed to read jobs"
+    });
+  }
+});
+
+app.post("/jobs", async (request, response) => {
+  const body = request.body as Partial<CreateQueueJobRequest>;
+  const durationSeconds = Number(body.durationSeconds);
+  const message = typeof body.message === "string" ? body.message.trim() : "";
+
+  if (!Number.isFinite(durationSeconds) || durationSeconds <= 0 || message.length === 0) {
+    response.status(400).json({
+      error: "durationSeconds and message are required"
+    });
+    return;
+  }
+
+  try {
+    const orchestratorResponse = await fetch(`${orchestratorUrl}/queueJob`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        durationSeconds,
+        message
+      } satisfies CreateQueueJobRequest)
+    });
+    const responseText = await orchestratorResponse.text();
+    const responseBody = responseText
+      ? JSON.parse(responseText) as CreateQueueJobResponse | { error: string }
+      : {};
+
+    response.status(orchestratorResponse.status).json(responseBody);
+  } catch (error) {
+    response.status(502).json({
+      error: error instanceof Error ? error.message : "Failed to queue job"
     });
   }
 });
