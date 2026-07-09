@@ -247,16 +247,6 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@clo835-project/ephemeral-worker@workspace:packages/ephemeral-worker":
-  version: 0.0.0-use.local
-  resolution: "@clo835-project/ephemeral-worker@workspace:packages/ephemeral-worker"
-  dependencies:
-    "@clo835-project/shared": "npm:0.1.0"
-    tsx: "npm:^4.20.0"
-    typescript: "npm:^5.8.0"
-  languageName: unknown
-  linkType: soft
-
 "@clo835-project/main-server@workspace:packages/main-server":
   version: 0.0.0-use.local
   resolution: "@clo835-project/main-server@workspace:packages/main-server"

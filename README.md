@@ -19,7 +19,7 @@ packages/
   main-server/            Express service called by the client
   task-orchestrator/      Express service that enqueues BullMQ jobs or creates Kubernetes Jobs
   bullmq-worker/          BullMQ queue worker scaled by KEDA
-  ephemeral-worker/       One-shot worker image used by orchestrator-created Kubernetes Jobs
+  ephemeral-worker/       Python one-shot worker image used by orchestrator-created Kubernetes Jobs
   shared/                 Shared TypeScript types and contracts
 deployment/               Docker, docker-compose, nginx, and deployment support files
 manifests/                Raw Kubernetes YAML required by the assignment

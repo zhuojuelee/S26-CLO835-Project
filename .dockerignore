@@ -8,6 +8,9 @@ packages/*/dist
 .turbo
 coverage
 *.tsbuildinfo
+__pycache__/
+*.py[cod]
+.venv/
 .env
 .env.*
 evidence

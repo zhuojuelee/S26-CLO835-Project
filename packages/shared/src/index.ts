@@ -1,24 +1,42 @@
 export type JobMode = "queue" | "ephemeral";
 
-export interface BaseJobRequest {
-  studentId: string;
+export const JOB_QUEUE_NAME = "jobQueue";
+export const JOB_KEY_PREFIX = "job:";
+
+export type Status = "pending" | "inProgress" | "completed" | "failed";
+export type JobStatus = Status;
+
+export interface JobData {
   durationSeconds: number;
-  message?: string;
+  message: string;
 }
 
-export interface QueueJobRequest extends BaseJobRequest {
-  mode: "queue";
-  batchId?: string;
+export interface JobResults {
+  output: string;
 }
 
-export interface EphemeralJobRequest extends BaseJobRequest {
-  mode: "ephemeral";
-}
-
-export interface JobAcceptedResponse {
+export interface JobRecord {
   jobId: string;
-  mode: JobMode;
-  acceptedAt: string;
+  status: JobStatus;
+  data: JobData;
+  results: JobResults;
+}
+
+export interface QueueJobPayload {
+  jobId: string;
+}
+
+export interface CreateQueueJobRequest {
+  durationSeconds: number;
+  message: string;
+}
+
+export interface CreateQueueJobResponse extends JobRecord {
+  queueName: string;
+}
+
+export function getJobKey(jobId: string): string {
+  return `${JOB_KEY_PREFIX}${jobId}`;
 }
 
 export interface HealthResponse {
