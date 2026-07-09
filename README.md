@@ -30,6 +30,10 @@ evidence/                 Demo transcripts and latency/scale evidence
 
 The system runs on a kind cluster hosted on an EC2 instance. The browser client is built as a static site, served by nginx in its own container, and deployed into the same cluster as the backend services. External traffic can enter through an ALB, ingress controller, or EC2-hosted reverse proxy, then route to the client and API services inside the cluster.
 
+Service Diagram:
+
+[!image](images/architecture.png)
+
 The client calls the main server only; the main server forwards long-running work to the task orchestrator and responds immediately.
 
 The orchestrator supports two asynchronous paths:
