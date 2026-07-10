@@ -5,11 +5,15 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'src/'
-      - 'manifest/'
-      - 'deployment/'
+      - '.github/workflows/build-and-push.yaml'
+      - 'packages/**'
+      - 'deployment/**'
+      - 'manifests/**'
       - 'package.json'
       - 'yarn.lock'
+      - '.yarnrc.yml'
+      - '.yarn/**'
+      - 'tsconfig.base.json'
 
 
 permissions:
