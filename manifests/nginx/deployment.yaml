@@ -17,6 +17,6 @@ spec:
     spec:
       containers:
         - name: nginx-container
-          image: # insert nginx docker registry image
+          image: zjlianlee/clo835-project-nginx:latest
           ports:
             - containerPort: 80

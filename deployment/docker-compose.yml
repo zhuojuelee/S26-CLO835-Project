@@ -7,9 +7,6 @@ services:
       - "80:80"
     volumes:
       - ./nginx-dev/nginx.conf:/etc/nginx/conf.d/default.conf
-    depends_on:
-      - client
-      - main-server
 
   client:
     image: ${IMAGE_REPOSITORY_PREFIX:-clo835-project}/client:${IMAGE_TAG:-local}

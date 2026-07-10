@@ -20,6 +20,8 @@ jobs:
         include:
           - image: clo835-project-bullmq-worker
             dockerfile: deployment/bullmq-worker/Dockerfile
+          - image: clo835-project-ephemeral-worker
+            dockerfile: deployment/ephemeral-worker/Dockerfile
           - image: clo835-project-main-server
             dockerfile: deployment/main-server/Dockerfile
           - image: clo835-project-nginx

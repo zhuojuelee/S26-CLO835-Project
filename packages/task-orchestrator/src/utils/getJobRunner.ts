@@ -53,7 +53,7 @@ class KubernetesJobRunner implements JobRunner {
   appLabel = 'ephemeral-worker';
   clusterNamespace = process.env.K8_NAMESPACE ?? 'orch-109920256';
   client = k8ApiClient;
-  containerImage = ''; // TODO: update
+  containerImage = 'zjlianlee/clo835-project-ephemeral-worker:latest';
 
   async run(jobId: string, retryAttempt: number): Promise<void> {
     const jobManifest: k8s.V1Job = {

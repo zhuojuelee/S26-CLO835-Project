@@ -17,7 +17,7 @@ spec:
     spec:
       - containers:
         name: bullmq-worker-container
-        image: # insert docker
+        image: zjlianlee/clo835-project-bullmq-worker:latest
         env:
           - name: REDIS_HOST
             value: "redis-service"

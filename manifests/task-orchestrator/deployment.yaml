@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: task-orchestrator-container
-          image: # insert task-orchestrator docker registry image
+          image: zjlianlee/clo835-project-task-orchestrator:latest
           ports:
             containerPort: 3000
           env:
