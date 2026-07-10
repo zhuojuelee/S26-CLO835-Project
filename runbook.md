@@ -79,20 +79,22 @@ newgrp docker
 export KUBECONFIG="$HOME/.kube/config"
 ```
 
-Create the bootstrap script
-
-```bash
-# create script - vi ...
-chmod +x bootstrap.sh
-./bootstrap.sh
-```
-
 ### Adding secrets
 
 Run the following to add the admin secret
 
 ```bash
 kubectl create secret generic secrets --from-literal=ADMIN_SECRET="<the-secret>"
+```
+
+### Bootstrapping
+
+Create the bootstrap script
+
+```bash
+# create script - vi ...
+chmod +x bootstrap.sh
+./bootstrap.sh
 ```
 
 ### Get K8 Dashboard token
