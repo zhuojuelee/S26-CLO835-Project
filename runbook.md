@@ -128,7 +128,7 @@ The following section contains all the procedures required for the runbook
 The client runs through an ALB so use the public domain to access it.
 
 > [!NOTE]
-> The /dashboard path doesn't work even though `nginx` is setup to proxy to it. This is because it needs an `https` protocol. Since Route53 is disabled for the Lab account, we cannot create a domain using ACM as well.
+> The `/dashboard` path doesn't work even though `nginx` is setup to proxy to it. This is because it needs a `https` protocol. Since Route53 is disabled for the Lab account, we cannot create a domain using ACM as well.
 
 ### Post a burst of queue jobs and watch KEDA scale BullMQ workers from zero to the cap and back to zero
 
