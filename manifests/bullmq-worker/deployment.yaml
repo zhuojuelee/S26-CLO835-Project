@@ -15,13 +15,13 @@ spec:
       labels:
         app: bullmq-worker
     spec:
-      - containers:
-        name: bullmq-worker-container
-        image: zjlianlee/clo835-project-bullmq-worker:latest
-        env:
-          - name: REDIS_HOST
-            value: "redis-service"
-          - name: REDIS_PORT
-            value: "6379"
-          - name: QUEUE_NAME
-            value: "jobQueue"
+      containers:
+        - name: bullmq-worker-container
+          image: zjlianlee/clo835-project-bullmq-worker:latest
+          env:
+            - name: REDIS_HOST
+              value: "redis-service"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: QUEUE_NAME
+              value: "jobQueue"

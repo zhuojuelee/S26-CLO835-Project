@@ -7,11 +7,10 @@ This runbook will contain the tested, copy-pasteable demo commands for the CLO83
 > [!NOTE]
 > The setup code is a slightly modified version of code provided from Lab 3.
 
-SSH into the the EC2 host as `ubuntu`, then run this once before `./bootstrap.sh`.
+Paste this block into EC2 User Data, or SSH into the EC2 host as `ubuntu`, save it as `setup-ec2-kind.sh`, and run it once with `sudo bash setup-ec2-kind.sh` before `./bootstrap.sh`.
 It installs Docker Engine, `kubectl`, and `kind`, then creates the project kind cluster and exports kubeconfig for the `ubuntu` user.
 
 ```bash
-cat > setup-ec2-kind.sh <<'EOF'
 #!/bin/bash
 set -euxo pipefail
 
@@ -23,22 +22,18 @@ KUBECTL_VERSION="v1.36.1"
 CLUSTER_NAME="clo835-${STUDENT_ID}"
 NODE_PORT="30080"
 
-# Install Docker Engine.
+export DEBIAN_FRONTEND=noninteractive
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Run this script as root, for example with sudo." >&2
+  exit 1
+fi
+
+# Install Docker Engine from Ubuntu packages.
 apt-get update
-apt-get install -y ca-certificates curl gnupg lsb-release
-
-install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-chmod a+r /etc/apt/keyrings/docker.asc
-
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME:-${VERSION_CODENAME}} stable" \
-  > /etc/apt/sources.list.d/docker.list
-
-apt-get update
-apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+apt-get install -y ca-certificates curl docker.io
 
 systemctl enable --now docker
-groupadd -f docker
 usermod -aG docker "${USER_NAME}"
 
 # Install kind.
@@ -75,13 +70,9 @@ docker version
 kind version
 kubectl version --client
 kubectl get nodes
-EOF
-
-chmod +x setup-ec2-kind.sh
-sudo ./setup-ec2-kind.sh
 ```
 
-After the script finishes, refresh the Docker group membership before running commands that use Docker as `ubuntu`, then run `bootstrap.sh`.
+After the script finishes, reconnect or refresh the Docker group membership before running commands that use Docker as `ubuntu`, then run `bootstrap.sh`.
 
 ```bash
 newgrp docker

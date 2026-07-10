@@ -15,6 +15,7 @@ spec:
       labels:
         app: task-orchestrator
     spec:
+      serviceAccountName: orchestrator-service-account-109920256
       containers:
         - name: task-orchestrator-container
           image: zjlianlee/clo835-project-task-orchestrator:latest
