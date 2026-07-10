@@ -6,8 +6,8 @@ NAMESPACE="orch-109920256"
 SERVICE_ACCOUNT="orchestrator-service-account-109920256"
 ROLE_NAME="orchestrator-job-manager-109920256"
 ROLE_BINDING_NAME="orchestrator-job-manager-binding-109920256"
-KEDA_TIMEOUT="90"
-ROLLOUT_TIMEOUT="90"
+KEDA_TIMEOUT="90s"
+ROLLOUT_TIMEOUT="90s"
 
 kubectl apply -f - <<K8S_YAML
 apiVersion: v1

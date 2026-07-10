@@ -19,4 +19,4 @@ spec:
         - name: redis-container
           image: redis:7.4
           ports:
-            containerPort: 6379
+            - containerPort: 6379

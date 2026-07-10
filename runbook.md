@@ -77,6 +77,13 @@ After the script finishes, reconnect or refresh the Docker group membership befo
 ```bash
 newgrp docker
 export KUBECONFIG="$HOME/.kube/config"
+chmod +x bootstrap.sh
+```
+
+Create the bootstrap script
+
+```bash
+# create script - vi ...
 ./bootstrap.sh
 ```
 

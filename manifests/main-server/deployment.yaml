@@ -19,7 +19,7 @@ spec:
         - name: main-server-container
           image: zjlianlee/clo835-project-main-server:latest
           ports:
-            containerPort: 3000
+            - containerPort: 3000
           env:
             - name: MAIN_SERVER_PORT
               value: "3000"
