@@ -34,3 +34,4 @@ spec:
                 secretKeyRef:
                   name: secrets
                   key: ADMIN_SECRET
+                  optional: true
