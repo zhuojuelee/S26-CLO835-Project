@@ -97,17 +97,38 @@ chmod +x bootstrap.sh
 ./bootstrap.sh
 ```
 
-### Get K8 Dashboard token
+### Get K8 Dashboard Working
 
-Run the following
+Get a token first
 
 ```
 kubectl -n kubernetes-dashboard create token admin-user
 ```
 
+Run the following in a new terminal, this will forward the port and it will continue to run.
+
+```
+kubectl port-forward -n kubernetes-dashboard service/kubernetes-dashboard 8443:443 --address=127.0.0.1
+```
+
+In a new terminal, open a tunnel from on our machine
+
+```
+ssh -i <your.pem> -N -L 8443:127.0.0.1:8443 ubuntu@<ec2_public_ip>
+```
+
+Access the dashboard from `https://localhost:8443/`
+
 ## Runbook Required Procedures
 
 The following section contains all the procedures required for the runbook
+
+### Open the Client
+
+The client runs through an ALB so use the public domain to access it.
+
+> [!NOTE]
+> The /dashboard path doesn't work even though `nginx` is setup to proxy to it. This is because it needs an `https` protocol. Since Route53 is disabled for the Lab account, we cannot create a domain using ACM as well.
 
 ### Post a burst of queue jobs and watch KEDA scale BullMQ workers from zero to the cap and back to zero
 

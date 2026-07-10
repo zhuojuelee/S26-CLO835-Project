@@ -2,7 +2,7 @@
 
 This repository is a Yarn workspace monorepo that demonstrates asynchronous job handling, queue-backed workers, KEDA scaling, and native Kubernetes API job creation.
 
-## Environment
+## Local Environment Setup
 
 Local Docker Compose runs use a root `.env` file:
 
@@ -20,7 +20,7 @@ packages/
   task-orchestrator/      Express service that enqueues BullMQ jobs or creates Kubernetes Jobs
   bullmq-worker/          BullMQ queue worker scaled by KEDA
   ephemeral-worker/       Python one-shot worker image used by orchestrator-created Kubernetes Jobs
-  shared/                 Shared TypeScript types and contracts
+  shared/                 Shared TypeScript types, constants and helpers
 deployment/               Docker, docker-compose, nginx, and deployment support files
 manifests/                Raw Kubernetes YAMLs
 evidence/                 Demo transcripts and latency/scale evidence
@@ -28,15 +28,17 @@ evidence/                 Demo transcripts and latency/scale evidence
 
 ## Architecture
 
-The system runs on a kind cluster hosted on an EC2 instance. The browser client is built as a static site, served by nginx in its own container, and deployed into the same cluster as the backend services. External traffic can enter through an ALB, ingress controller, or EC2-hosted reverse proxy, then route to the client and API services inside the cluster.
+The system runs on a kind cluster hosted on an EC2 instance. The browser client is built as a static site, served by nginx in its own container, and deployed into the same cluster as the backend services. External traffic can enter through an ALB to a nginx reverse proxy that routes to the client and API services (mainly `main-server`) inside the cluster.
 
 Service Diagram:
 
 ![CLO835 async job orchestration architecture](images/architecture.png)
 
-The client calls the main server only; the main server forwards long-running work to the task orchestrator and responds immediately.
+The client calls the main server only; the main server forwards all work requests to the task orchestrator and responds immediately. It also reads `redis` to for the latest job updates. The client can clear the `redis` cache through the use of a secret.
 
 The orchestrator supports two asynchronous paths:
 
 - Queue jobs: push a BullMQ job to Redis, where queue workers consume jobs and KEDA scales the worker Deployment on Redis queue depth.
 - Ephemeral jobs: create a one-shot Kubernetes Job through the native Kubernetes API using the orchestrator ServiceAccount.
+
+It also runs a `cron` to scan and retry "stale" jobs. Job statuses (Records) are managed by workers and the task orchestrator.
