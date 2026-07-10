@@ -1,6 +1,6 @@
 # Runbook
 
-This runbook will contain the tested, copy-pasteable demo commands for the CLO835 async orchestration project.
+This runbook contains the tested demo commands for the project.
 
 ## EC2 Pre-Bootstrap Host Setup
 
@@ -77,13 +77,13 @@ After the script finishes, reconnect or refresh the Docker group membership befo
 ```bash
 newgrp docker
 export KUBECONFIG="$HOME/.kube/config"
-chmod +x bootstrap.sh
 ```
 
 Create the bootstrap script
 
 ```bash
 # create script - vi ...
+chmod +x bootstrap.sh
 ./bootstrap.sh
 ```
 
@@ -93,6 +93,14 @@ Run the following to add the admin secret
 
 ```bash
 kubectl create secret generic secrets --from-literal=ADMIN_SECRET="<the-secret>"
+```
+
+### Get K8 Dashboard token
+
+Run the following
+
+```
+kubectl -n kubernetes-dashboard create token admin-user
 ```
 
 ## Runbook Required Procedures

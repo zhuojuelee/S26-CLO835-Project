@@ -5,14 +5,23 @@ metadata:
   namespace: orch-109920256
 spec:
   scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
     name: bullmq-worker-deployment
-  minReplicaCount: 0
+  minReplicaCount: 1
   maxReplicaCount: 90
+  pollingInterval: 15 # check every 15s
+  cooldownPeriod: 15 # time to wait after last trigger before scaling down
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleDown:
+          stabilizationWindowSeconds: 30 # scale down from max to min within 30s of an empty queue
+          policies:
+            - type: Percent
+              value: 100
+              periodSeconds: 10 # limit no. pods deleted within 10s (traffic control)
   triggers:
-  - type: redis
-    metadata:
-      address: redis-service.orch-109920256.svc.cluster.local:6379
-      listName: bull:jobQueue:wait
-      listLength: "2" # keep it low for demo purposes
+    - type: redis
+      metadata:
+        address: redis-service.orch-109920256.svc.cluster.local:6379
+        listName: bull:jobQueue:wait
+        listLength: "2" # keep it low for demo purposes
