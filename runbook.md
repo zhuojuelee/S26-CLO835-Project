@@ -2,11 +2,123 @@
 
 This runbook will contain the tested, copy-pasteable demo commands for the CLO835 async orchestration project.
 
-## Required Procedures
+## EC2 Pre-Bootstrap Host Setup
 
-- Post a burst of queue jobs and watch KEDA scale BullMQ workers from zero to the cap and back to zero.
-- Post an ephemeral job and show the orchestrator-created Kubernetes Job and Pod.
-- Prove the main server stays responsive during queue and ephemeral load.
-- Kill a BullMQ worker Pod mid-drain and show the queue job is retried or reclaimed.
-- Inspect orchestrator RBAC and prove it is namespace-scoped.
-- Tear down the project and confirm no leftover resources remain.
+> [!NOTE]
+> The setup code is a slightly modified version of code provided from Lab 3.
+
+SSH into the the EC2 host as `ubuntu`, then run this once before `./bootstrap.sh`.
+It installs Docker Engine, `kubectl`, and `kind`, then creates the project kind cluster and exports kubeconfig for the `ubuntu` user.
+
+```bash
+cat > setup-ec2-kind.sh <<'EOF'
+#!/bin/bash
+set -euxo pipefail
+
+USER_NAME="ubuntu"
+STUDENT_ID="109920256"
+KIND_VERSION="v0.32.0"
+KIND_NODE_IMAGE="kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5"
+KUBECTL_VERSION="v1.36.1"
+CLUSTER_NAME="clo835-${STUDENT_ID}"
+NODE_PORT="30080"
+
+# Install Docker Engine.
+apt-get update
+apt-get install -y ca-certificates curl gnupg lsb-release
+
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu ${UBUNTU_CODENAME:-${VERSION_CODENAME}} stable" \
+  > /etc/apt/sources.list.d/docker.list
+
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+systemctl enable --now docker
+groupadd -f docker
+usermod -aG docker "${USER_NAME}"
+
+# Install kind.
+curl -fsSLo /tmp/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+install -o root -g root -m 0755 /tmp/kind /usr/local/bin/kind
+
+# Install kubectl.
+curl -fsSLo /tmp/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl
+
+# Create kind cluster with NodePort exposed on the EC2 host.
+cat > /tmp/kind-config.yaml <<KIND_CONFIG
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: ${NODE_PORT}
+        hostPort: ${NODE_PORT}
+        listenAddress: "0.0.0.0"
+        protocol: TCP
+KIND_CONFIG
+
+mkdir -p "/home/${USER_NAME}/.kube"
+
+kind create cluster --name "${CLUSTER_NAME}" --image "${KIND_NODE_IMAGE}" --config /tmp/kind-config.yaml --wait 5m
+kind export kubeconfig --name "${CLUSTER_NAME}" --kubeconfig "/home/${USER_NAME}/.kube/config"
+
+chown -R "${USER_NAME}:${USER_NAME}" "/home/${USER_NAME}/.kube"
+export KUBECONFIG="/home/${USER_NAME}/.kube/config"
+
+# Verify setup.
+docker version
+kind version
+kubectl version --client
+kubectl get nodes
+EOF
+
+chmod +x setup-ec2-kind.sh
+sudo ./setup-ec2-kind.sh
+```
+
+After the script finishes, refresh the Docker group membership before running commands that use Docker as `ubuntu`, then run `bootstrap.sh`.
+
+```bash
+newgrp docker
+export KUBECONFIG="$HOME/.kube/config"
+./bootstrap.sh
+```
+
+### Adding secrets
+
+Run the following to add the admin secret
+
+```bash
+kubectl create secret generic secrets --from-literal=ADMIN_SECRET="<the-secret>"
+```
+
+## Runbook Required Procedures
+
+The following section contains all the procedures required for the runbook
+
+### Post a burst of queue jobs and watch KEDA scale BullMQ workers from zero to the cap and back to zero
+
+### Post an ephemeral job and show the orchestrator-created Kubernetes Job and Pod
+
+### Prove the main server stays responsive during queue and ephemeral load
+
+### Kill a BullMQ worker Pod mid-drain and show the queue job is retried or reclaimed
+
+### Inspect and explain the orchestrator RBAC. Prove it can create jobs in `orch-109920256` and prove it cannot act in any other space
+
+Run the following checks
+
+```bash
+kubectl auth can-i create jobs.batch --as=system:serviceaccount:orch-109920256:orchestrator-service-account-109920256 -n orch-109920256
+kubectl auth can-i create jobs.batch --as=system:serviceaccount:orch-109920256:orchestrator-service-account-109920256 -n default
+kubectl auth can-i list pods --as=system:serviceaccount:orch-109920256:orchestrator-service-account-109920256 -n orch-109920256
+```
+
+Expected output is `yes`, then `no`, then `no`. The RoleBinding applies only to Pods running as `orchestrator-service-account-109920256`; other services in the namespace do not inherit it unless their Deployment explicitly sets the same `serviceAccountName`.
+
+### Tear down the project and confirm no leftover resources remain

@@ -1,8 +1,10 @@
 import http from 'node:http';
+import * as k8s from '@kubernetes/client-node';
+import k8ApiClient from '../modules/k8/index.js';
 
 export interface JobRunner {
-  name: string;
-  run(jobId: string): Promise<void>;
+  name: string; // internally readable name
+  run(jobId: string, retryAttempt?: number): Promise<void>;
 }
 
 interface DockerCreateContainerResponse {
@@ -48,13 +50,58 @@ class LocalContainerJobRunner implements JobRunner {
 class KubernetesJobRunner implements JobRunner {
   name = 'kubernetes-job';
 
-  async run(): Promise<void> {
-    throw new Error('Kubernetes ephemeral job runner is not implemented yet');
+  appLabel = 'ephemeral-worker';
+  clusterNamespace = process.env.K8_NAMESPACE ?? 'orch-109920256';
+  client = k8ApiClient;
+  containerImage = ''; // TODO: update
+
+  async run(jobId: string, retryAttempt: number): Promise<void> {
+    const jobManifest: k8s.V1Job = {
+      apiVersion: 'batch/v1',
+      kind: 'Job',
+      metadata: {
+        name: `ephemeral-worker-${jobId}-attempt${retryAttempt}`,
+        namespace: this.clusterNamespace,
+        labels: {
+          app: this.appLabel,
+        },
+      },
+      spec: {
+        ttlSecondsAfterFinished: 15,
+        backoffLimit: 0,
+        template: {
+          metadata: {
+            labels: {
+              app: this.appLabel,
+            },
+          },
+          spec: {
+            restartPolicy: 'Never',
+            containers: [
+              {
+                name: this.appLabel,
+                image: this.containerImage,
+                env: [
+                  { name: 'JOB_ID', value: jobId },
+                  { name: 'REDIS_HOST', value: process.env.REDIS_HOST },
+                  { name: 'REDIS_PORT', value: process.env.REDIS_PORT },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    };
+
+    await this.client!.createNamespacedJob({
+      namespace: this.clusterNamespace,
+      body: jobManifest,
+    });
   }
 }
 
 export function getJobRunner(): JobRunner {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.JOB_RUNNER === 'kubernetes') {
     return new KubernetesJobRunner();
   }
 

@@ -14,7 +14,7 @@ import {
   isStaleJob,
 } from '@clo835-project/shared/utils';
 import type { JobRunner } from './getJobRunner.js';
-import redis from '../redis/index.js';
+import redis from '../modules/redis/index.js';
 
 export interface ScanAndRetryJobsOptions {
   jobQueue: Queue<QueueJobPayload>;
@@ -135,7 +135,7 @@ async function dispatchRetry(
   jobRunner: JobRunner,
 ): Promise<void> {
   if (record.jobType === 'ephemeral') {
-    await jobRunner.run(record.jobId);
+    await jobRunner.run(record.jobId, record.retries);
     return;
   }
 

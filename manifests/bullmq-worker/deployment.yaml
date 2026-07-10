@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bullmq-worker-deployment
+  namespace: orch-109920256
+  labels:
+    app: bullmq-worker
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: bullmq-worker
+  template:
+    metadata:
+      labels:
+        app: bullmq-worker
+    spec:
+      - containers:
+        name: bullmq-worker-container
+        image: # insert docker
+        env:
+          - name: REDIS_HOST
+            value: "redis-service"
+          - name: REDIS_PORT
+            value: "6379"
+          - name: QUEUE_NAME
+            value: "jobQueue"

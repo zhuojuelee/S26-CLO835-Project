@@ -12,7 +12,7 @@ import {
   type JobRecord,
   type QueueJobPayload,
 } from '@clo835-project/shared';
-import { redisConnection } from './redis/index.js';
+import { redisConnection } from './modules/redis/index.js';
 import { getJobRunner } from './utils/getJobRunner.js';
 import { createJobRecord, markJobFailed } from './utils/records.js';
 import { scanAndRetryJobs } from './utils/scanAndRetryJob.js';
@@ -130,7 +130,7 @@ app.post('/spawnJob', async (request, response) => {
   }
 
   try {
-    await jobRunner.run(record.jobId);
+    await jobRunner.run(record.jobId, record.retries);
   } catch (error) {
     const failedRecord = await markJobFailed(record, error, 'Failed to spawn ephemeral job');
 

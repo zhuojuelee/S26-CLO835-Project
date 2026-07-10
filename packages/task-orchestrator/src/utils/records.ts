@@ -6,7 +6,7 @@ import {
   type JobRecord,
 } from '@clo835-project/shared';
 import { createPendingJobRecord, failJobRecord } from '@clo835-project/shared/utils';
-import redis from '../redis/index.js';
+import redis from '../modules/redis/index.js';
 
 export async function createJobRecord(
   request: CreateQueueJobRequest,

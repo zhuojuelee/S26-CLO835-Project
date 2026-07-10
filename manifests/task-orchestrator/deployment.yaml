@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: task-orchestrator-deployment
+  namespace: orch-109920256
+  labels:
+    app: task-orchestrator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: task-orchestrator
+  template:
+    metadata:
+      labels:
+        app: task-orchestrator
+    spec:
+      containers:
+        - name: task-orchestrator-container
+          image: # insert task-orchestrator docker registry image
+          ports:
+            containerPort: 3000
+          env:
+            - name: TASK_ORCHESTRATOR_PORT
+              value: "3001"
+            - name: QUEUE_NAME
+              value: "jobQueue"
+            - name: K8_NAMESPACE
+              value: "orch-109920256"
+            - name: REDIS_HOST
+              value: "redis-service"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: JOB_RUNNER
+              value: "kubernetes"
