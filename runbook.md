@@ -101,11 +101,29 @@ The following section contains all the procedures required for the runbook
 
 ### Post a burst of queue jobs and watch KEDA scale BullMQ workers from zero to the cap and back to zero
 
+Go to ALB domain and spam queue jobs. View pods via:
+
+```bash
+kubectl get pods -l app=bullmq-worker -n orch-109920256
+```
+
 ### Post an ephemeral job and show the orchestrator-created Kubernetes Job and Pod
+
+Go to ALB domain and spam ephemeral jobs. View pods via:
+
+```bash
+kubectl get pods -n orch-109920256 | grep "ephemeral-worker-"
+```
 
 ### Prove the main server stays responsive during queue and ephemeral load
 
+Open network tab and show that API is non-blocking
+
 ### Kill a BullMQ worker Pod mid-drain and show the queue job is retried or reclaimed
+
+1. Run a long running BullMQ job
+2. Get the BullMQ pods - `kubectl get pods -l app=bullmq-worker -n orch-109920256`
+3. Find the pod and delete it - `kubectl pod <insert_pod> -n orch-109920256`
 
 ### Inspect and explain the orchestrator RBAC. Prove it can create jobs in `orch-109920256` and prove it cannot act in any other space
 
@@ -120,3 +138,5 @@ kubectl auth can-i list pods --as=system:serviceaccount:orch-109920256:orchestra
 Expected output is `yes`, then `no`, then `no`. The RoleBinding applies only to Pods running as `orchestrator-service-account-109920256`; other services in the namespace do not inherit it unless their Deployment explicitly sets the same `serviceAccountName`.
 
 ### Tear down the project and confirm no leftover resources remain
+
+Run `kind delete cluster --name clo835-109920256`

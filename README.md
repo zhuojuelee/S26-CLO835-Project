@@ -1,6 +1,6 @@
 # CLO835 Async Job Orchestration
 
-This repository is a Yarn workspace monorepo for a CLO835 project that demonstrates asynchronous job handling, queue-backed workers, KEDA scaling, and native Kubernetes API job creation.
+This repository is a Yarn workspace monorepo that demonstrates asynchronous job handling, queue-backed workers, KEDA scaling, and native Kubernetes API job creation.
 
 ## Environment
 

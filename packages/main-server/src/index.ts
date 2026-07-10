@@ -72,7 +72,7 @@ app.get('/jobs', async (_request, response) => {
     }
 
     const values = await redis.mget(keys);
-    const jobs: JobsResponse = [];
+    const jobs: Array<{ key: string; record: JobRecord }> = [];
 
     for (const [index, value] of values.entries()) {
       if (!value) {
@@ -80,11 +80,18 @@ app.get('/jobs', async (_request, response) => {
       }
 
       jobs.push({
-        [keys[index]]: JSON.parse(value) as JobRecord,
+        key: keys[index],
+        record: JSON.parse(value) as JobRecord,
       });
     }
 
-    response.json(jobs);
+    jobs.sort((a, b) => b.record.createdAt - a.record.createdAt);
+
+    const body: JobsResponse = jobs.map(({ key, record }) => ({
+      [key]: record,
+    }));
+
+    response.json(body);
   } catch (error) {
     response.status(500).json({
       error: error instanceof Error ? error.message : 'Failed to read jobs',
@@ -152,7 +159,9 @@ app.post('/jobs', async (request, response) => {
       } satisfies CreateQueueJobRequest),
     });
     const responseText = await orchestratorResponse.text();
-    const responseBody = responseText ? (JSON.parse(responseText) as CreateJobResponse | { error: string }) : {};
+    const responseBody = responseText
+      ? (JSON.parse(responseText) as CreateJobResponse | { error: string })
+      : {};
 
     response.status(orchestratorResponse.status).json(responseBody);
   } catch (error) {
