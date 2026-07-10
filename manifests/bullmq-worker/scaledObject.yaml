@@ -15,4 +15,4 @@ spec:
     metadata:
       address: redis-service.orch-109920256.svc.cluster.local:6379
       listName: bull:jobQueue:wait
-      listLength: 2 # keep it low for demo purposes
+      listLength: "2" # keep it low for demo purposes

@@ -75,9 +75,7 @@ kubectl apply --server-side -f https://github.com/kedacore/keda/releases/downloa
 kubectl apply --server-side -f https://github.com/kedacore/keda/releases/download/v2.20.0/keda-2.20.0-core.yaml
 kubectl wait --for=condition=Established crd/scaledobjects.keda.sh --timeout="${KEDA_TIMEOUT}"
 kubectl wait --for=condition=Established crd/scaledjobs.keda.sh --timeout="${KEDA_TIMEOUT}"
-kubectl rollout status deployment/keda-operator -n keda --timeout="${KEDA_TIMEOUT}"
-kubectl rollout status deployment/keda-operator-metrics-apiserver -n keda --timeout="${KEDA_TIMEOUT}"
-kubectl rollout status deployment/keda-admission-webhooks -n keda --timeout="${KEDA_TIMEOUT}"
+kubectl wait --for=condition=Available deployment --all -n keda --timeout="${KEDA_TIMEOUT}"
 
 echo "Applying main server deployment and service..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/main-server/deployment.yaml
