@@ -4,6 +4,13 @@ on:
   workflow_dispatch:
   push:
     branches: [ main ]
+    paths:
+      - 'src/'
+      - 'manifest/'
+      - 'deployment/'
+      - 'package.json'
+      - 'yarn.lock'
+
 
 permissions:
   contents: read
