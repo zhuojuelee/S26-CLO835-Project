@@ -9,6 +9,8 @@ KUBECTL_VERSION="v1.36.1"
 CLUSTER_NAME="clo835-${STUDENT_ID}"
 NODE_PORT="30080"
 
+DEPLOY_DASHBOARD=($1) || DEPLOY_DASHBOARD="false"
+
 export DEBIAN_FRONTEND=noninteractive
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -94,34 +96,38 @@ kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project
 kubectl rollout status deployment/task-orchestrator-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
 echo "Creating k8 dashboard..."
-kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
-kubectl rollout status deployment/kubernetes-dashboard -n kubernetes-dashboard --timeout="${ROLLOUT_TIMEOUT}"
-kubectl -n kubernetes-dashboard create serviceaccount admin-user --dry-run=client -o yaml | kubectl apply -f -
-kubectl create clusterrolebinding admin-user --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:admin-user --dry-run=client -o yaml | kubectl apply -f -
 
-echo "Applying client (nginx) deployment and service..."
-TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
-PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
-
-if [ -z "$PUBLIC_IP" ] || [ "$PUBLIC_IP" == "null" ]; then
-    echo "Error: Could not retrieve EC2 Public IP address."
-    exit 1
+if [[ DEPLOY_DASHBOARD == "true" ]]; then
+  kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+  kubectl rollout status deployment/kubernetes-dashboard -n kubernetes-dashboard --timeout="${ROLLOUT_TIMEOUT}"
+  kubectl -n kubernetes-dashboard create serviceaccount admin-user --dry-run=client -o yaml | kubectl apply -f -
+  kubectl create clusterrolebinding admin-user --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:admin-user --dry-run=client -o yaml | kubectl apply -f -
 fi
 
-export EC2_PUBLIC_IP="$PUBLIC_IP"
-echo "Retrieved EC2 Public IP: $EC2_PUBLIC_IP"
-echo "Injecting IP and applying deployment..."
-curl -s https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml \
-  | sed '/- name: nginx-container/a \          env:\n            - name: EC2_PUBLIC_IP\n              value: "'"$EC2_PUBLIC_IP"'"' \
-  | kubectl apply -f -
+echo "Applying client (nginx) deployment and service..."
 
-kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/service.yaml
-kubectl rollout status deployment/nginx-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
+if [[ DEPLOY_DASHBOARD == "true" ]] then
+  TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+  PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
 
+  if [ -z "$PUBLIC_IP" ] || [ "$PUBLIC_IP" == "null" ]; then
+      echo "Error: Could not retrieve EC2 Public IP address."
+      exit 1
+  fi
 
-kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml
-kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/service.yaml
-kubectl rollout status deployment/nginx-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
+  export EC2_PUBLIC_IP="$PUBLIC_IP"
+  echo "Retrieved EC2 Public IP: $EC2_PUBLIC_IP"
+  echo "Injecting IP and applying deployment..."
+  curl -s https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml \
+    | sed '/- name: nginx-container/a \          env:\n            - name: EC2_PUBLIC_IP\n              value: "'"$EC2_PUBLIC_IP"'"' \
+    | kubectl apply -f -
+  kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/service.yaml
+  kubectl rollout status deployment/nginx-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
+else
+  kubectl apply -f  https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml
+  kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/service.yaml
+  kubectl rollout status deployment/nginx-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
+fi
 
 echo "Applying bullmq worker deployment and scaledObject..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/deployment.yaml

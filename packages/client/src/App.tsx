@@ -6,7 +6,7 @@ import JobSummaryCards from './components/JobSummaryCards';
 import ArchitectureIcon from '@mui/icons-material/Architecture';
 import { useCallback, useState } from 'react';
 
-const EC2_PUBLIC_IP = process.env.EC2_PUBLIC_IP;
+const EC2_PUBLIC_IP = import.meta.env.EC2_PUBLIC_IP;
 
 export default function App() {
   const [archModalOpen, setArchModalOpen] = useState(false);
