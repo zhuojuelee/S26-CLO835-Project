@@ -5,7 +5,8 @@ import ArchitectureModal from './components/ArchitectureModal';
 import JobSummaryCards from './components/JobSummaryCards';
 import ArchitectureIcon from '@mui/icons-material/Architecture';
 import { useCallback, useState } from 'react';
-import { lightBlue } from '@mui/material/colors';
+
+const EC2_PUBLIC_IP = process.env.EC2_PUBLIC_IP;
 
 export default function App() {
   const [archModalOpen, setArchModalOpen] = useState(false);
@@ -24,6 +25,10 @@ export default function App() {
 
   const onK8DashboardChipClick = useCallback(() => {
     if (window.location.protocol === 'http:') {
+      if (EC2_PUBLIC_IP) {
+        window.open(`https://${EC2_PUBLIC_IP}:30081`, '_blank', 'noopener,noreferrer');
+        return;
+      }
       alert(
         'This is currently running on a HTTP protocol, so the dashboard would not work. Please use the public IP to access it at https://<public-ip>/dashboard.',
       );

@@ -71,10 +71,6 @@ kubectl config set-context --current --namespace="${NAMESPACE}"
 
 echo "Bootstrap foundation complete."
 
-echo "Creating config map for relevant environment variables"
-TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
-EC2_PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
-
 echo "Applying redis deployment and service..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/redis/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/redis/service.yaml
@@ -104,6 +100,25 @@ kubectl -n kubernetes-dashboard create serviceaccount admin-user --dry-run=clien
 kubectl create clusterrolebinding admin-user --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:admin-user --dry-run=client -o yaml | kubectl apply -f -
 
 echo "Applying client (nginx) deployment and service..."
+TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
+
+if [ -z "$PUBLIC_IP" ] || [ "$PUBLIC_IP" == "null" ]; then
+    echo "Error: Could not retrieve EC2 Public IP address."
+    exit 1
+fi
+
+export EC2_PUBLIC_IP="$PUBLIC_IP"
+echo "Retrieved EC2 Public IP: $EC2_PUBLIC_IP"
+echo "Injecting IP and applying deployment..."
+curl -s https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml \
+  | sed '/- name: nginx-container/a \          env:\n            - name: EC2_PUBLIC_IP\n              value: "'"$EC2_PUBLIC_IP"'"' \
+  | kubectl apply -f -
+
+kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/service.yaml
+kubectl rollout status deployment/nginx-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
+
+
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/service.yaml
 kubectl rollout status deployment/nginx-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
