@@ -1,69 +1,79 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
+USER_NAME="ubuntu"
 STUDENT_ID="109920256"
+KIND_VERSION="v0.32.0"
+KIND_NODE_IMAGE="kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5"
+KUBECTL_VERSION="v1.36.1"
+CLUSTER_NAME="clo835-${STUDENT_ID}"
+NODE_PORT="30080"
+
+export DEBIAN_FRONTEND=noninteractive
+
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Run this script as root, for example with sudo." >&2
+  exit 1
+fi
+
+# Install Docker Engine from Ubuntu packages.
+apt-get update
+apt-get install -y ca-certificates curl docker.io
+
+systemctl enable --now docker
+usermod -aG docker "${USER_NAME}"
+
+# Install kind.
+curl -fsSLo /tmp/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+install -o root -g root -m 0755 /tmp/kind /usr/local/bin/kind
+
+# Install kubectl.
+curl -fsSLo /tmp/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl
+
+# Create kind cluster with NodePort exposed on the EC2 host.
+cat > /tmp/kind-config.yaml <<KIND_CONFIG
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: ${NODE_PORT}
+        hostPort: ${NODE_PORT}
+        listenAddress: "0.0.0.0"
+        protocol: TCP
+KIND_CONFIG
+
+mkdir -p "/home/${USER_NAME}/.kube"
+
+kind create cluster --name "${CLUSTER_NAME}" --image "${KIND_NODE_IMAGE}" --config /tmp/kind-config.yaml --wait 5m
+kind export kubeconfig --name "${CLUSTER_NAME}" --kubeconfig "/home/${USER_NAME}/.kube/config"
+
+chown -R "${USER_NAME}:${USER_NAME}" "/home/${USER_NAME}/.kube"
+export KUBECONFIG="/home/${USER_NAME}/.kube/config"
+
+# Verify setup.
+docker version
+kind version
+kubectl version --client
+kubectl get nodes
+
+newgrp docker
+export KUBECONFIG="$HOME/.kube/config"
+
 NAMESPACE="orch-109920256"
-SERVICE_ACCOUNT="orchestrator-service-account-109920256"
-ROLE_NAME="orchestrator-job-manager-109920256"
-ROLE_BINDING_NAME="orchestrator-job-manager-binding-109920256"
 KEDA_TIMEOUT="90s"
 ROLLOUT_TIMEOUT="90s"
 
-kubectl apply -f - <<K8S_YAML
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: ${NAMESPACE}
-  labels:
-    project: clo835-async-orchestration
-    student: "${STUDENT_ID}"
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: ${SERVICE_ACCOUNT}
-  namespace: ${NAMESPACE}
-  labels:
-    component: task-orchestrator
-    project: clo835-async-orchestration
-    student: "${STUDENT_ID}"
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: ${ROLE_NAME}
-  namespace: ${NAMESPACE}
-  labels:
-    component: task-orchestrator
-    project: clo835-async-orchestration
-    student: "${STUDENT_ID}"
-rules:
-  - apiGroups: ["batch"]
-    resources: ["jobs"]
-    verbs: ["create", "get", "list", "watch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: ${ROLE_BINDING_NAME}
-  namespace: ${NAMESPACE}
-  labels:
-    component: task-orchestrator
-    project: clo835-async-orchestration
-    student: "${STUDENT_ID}"
-subjects:
-  - kind: ServiceAccount
-    name: ${SERVICE_ACCOUNT}
-    namespace: ${NAMESPACE}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: ${ROLE_NAME}
-K8S_YAML
+kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/cluster/config.yaml
 
 kubectl config set-context --current --namespace="${NAMESPACE}"
 
 echo "Bootstrap foundation complete."
+
+echo "Creating config map for relevant environment variables"
+TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+EC2_PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
 
 echo "Applying redis deployment and service..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/redis/deployment.yaml

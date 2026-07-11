@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import { keyframes } from '@emotion/react';
 import {
   Alert,
   Box,
@@ -7,6 +9,7 @@ import {
   CircularProgress,
   FormControlLabel,
   IconButton,
+  LinearProgress,
   Paper,
   Stack,
   Switch,
@@ -21,11 +24,29 @@ import {
 } from '@mui/material';
 import { useAtom, useAtomValue } from 'jotai';
 import type { DeleteJobsResponse, JobRecord } from '@clo835-project/shared';
-import { jobsAtom, jobsPollingEnabledAtom } from '../../atoms/jobAtom';
+import {
+  jobsAtom,
+  jobsPollingEnabledAtom,
+  jobStatusFilterAtom,
+  jobTypeFilterAtom,
+} from '../../atoms/jobAtom';
 import ClearCacheConfirmationModal from '../ClearCacheConfirmationModal';
+import TableFilterChips from './TableFilterChips';
 
 const jobsEndpoint = '/api/jobs';
 const emptyValue = '-';
+const millisecondsPerSecond = 1000;
+const livePollingPulse = keyframes`
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.75);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+`;
 
 type JobRow = {
   redisKey: string;
@@ -57,12 +78,47 @@ function getJobTypeColor(jobType: JobRecord['jobType'] | undefined) {
   }
 }
 
+function getProgressColor(status: JobRecord['status']) {
+  switch (status) {
+    case 'completed':
+      return 'success';
+    case 'failed':
+      return 'error';
+    case 'inProgress':
+      return 'info';
+    case 'pending':
+    default:
+      return 'warning';
+  }
+}
+
 function formatTimestamp(timestamp: number | undefined): string {
   if (!timestamp) {
     return emptyValue;
   }
 
   return new Date(timestamp).toLocaleString();
+}
+
+function getElapsedMilliseconds(job: JobRecord): number {
+  if (!job.startedAt) {
+    return 0;
+  }
+
+  const endTimestamp = job.endedAt ?? Date.now();
+
+  return Math.max(0, endTimestamp - job.startedAt);
+}
+
+function getProgressPercent(job: JobRecord): number {
+  if (job.status === 'completed') {
+    return 100;
+  }
+
+  const durationMilliseconds = Math.max(1, job.data.durationSeconds) * millisecondsPerSecond;
+  const elapsedMilliseconds = getElapsedMilliseconds(job);
+
+  return Math.min(100, Math.round((elapsedMilliseconds / durationMilliseconds) * 100));
 }
 
 function getTimingRows(job: JobRecord): Array<[string, string]> {
@@ -76,12 +132,14 @@ function getTimingRows(job: JobRecord): Array<[string, string]> {
 
 export default function QueueJobDetailsTable() {
   const jobsQuery = useAtomValue(jobsAtom);
+  const jobStatusFilter = useAtomValue(jobStatusFilterAtom);
+  const jobTypeFilter = useAtomValue(jobTypeFilterAtom);
   const [isPollingEnabled, setIsPollingEnabled] = useAtom(jobsPollingEnabledAtom);
   const [isClearJobsModalOpen, setIsClearJobsModalOpen] = useState(false);
   const [isClearingJobs, setIsClearingJobs] = useState(false);
   const [clearJobsError, setClearJobsError] = useState<string | null>(null);
 
-  const rows = useMemo<JobRow[]>(() => {
+  const allRows = useMemo<JobRow[]>(() => {
     return (jobsQuery.data ?? []).flatMap((jobRecord) => {
       return Object.entries(jobRecord).map(([redisKey, job]) => ({
         redisKey,
@@ -89,6 +147,18 @@ export default function QueueJobDetailsTable() {
       }));
     });
   }, [jobsQuery.data]);
+
+  const filteredRows = useMemo(() => {
+    return allRows.filter(({ job }) => {
+      const jobType = job.jobType === 'ephemeral' ? 'ephemeral' : 'queue';
+      const matchesStatus = jobStatusFilter === 'all' || job.status === jobStatusFilter;
+      const matchesType = jobTypeFilter === 'all' || jobType === jobTypeFilter;
+
+      return matchesStatus && matchesType;
+    });
+  }, [allRows, jobStatusFilter, jobTypeFilter]);
+
+  const allJobs = useMemo(() => allRows.map(({ job }) => job), [allRows]);
 
   const clearJobs = useCallback(
     async (adminSecret: string) => {
@@ -124,26 +194,38 @@ export default function QueueJobDetailsTable() {
     <Stack spacing={2}>
       <Box
         sx={{
-          alignItems: 'center',
+          alignItems: { xs: 'stretch', md: 'center' },
           display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
           gap: 2,
           justifyContent: 'space-between',
         }}
       >
-        <Typography component="h2" variant="h6">
-          Jobs
-        </Typography>
+        <Stack
+          direction="row"
+          spacing={1.5}
+          sx={{
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            rowGap: 1,
+          }}
+        >
+          <Typography component="h2" variant="h6">
+            Jobs
+          </Typography>
+          <TableFilterChips jobs={allJobs} />
+        </Stack>
         <Stack
           direction="row"
           spacing={1}
           sx={{ alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}
         >
-          <Tooltip title={rows.length === 0 ? 'No jobs to clear' : 'Clear Redis job records'}>
+          <Tooltip title={allRows.length === 0 ? 'No jobs to clear' : 'Clear Redis job records'}>
             <span>
               <IconButton
                 aria-label="Clear Redis job records"
                 color="error"
-                disabled={isClearingJobs || rows.length === 0}
+                disabled={isClearingJobs || allRows.length === 0}
                 onClick={() => {
                   setClearJobsError(null);
                   setIsClearJobsModalOpen(true);
@@ -166,6 +248,50 @@ export default function QueueJobDetailsTable() {
             }
             label="Live polling"
           />
+          <Box
+            sx={{
+              alignItems: 'center',
+              display: 'inline-flex',
+              flex: '0 0 34px',
+              height: 34,
+              justifyContent: 'center',
+              width: 34,
+            }}
+          >
+            {isPollingEnabled ? (
+              <Tooltip title="Live polling active">
+                <Box
+                  aria-label="Live polling active"
+                  component="span"
+                  role="status"
+                  sx={{
+                    animation: `${livePollingPulse} 1.2s ease-in-out infinite`,
+                    bgcolor: 'error.main',
+                    borderRadius: '50%',
+                    boxShadow: (theme) => `0 0 0 4px ${theme.palette.error.main}1f`,
+                    display: 'inline-block',
+                    height: 10,
+                    width: 10,
+                  }}
+                />
+              </Tooltip>
+            ) : (
+              <Tooltip title="Refresh jobs">
+                <span>
+                  <IconButton
+                    aria-label="Refresh jobs"
+                    disabled={jobsQuery.isFetching}
+                    onClick={() => {
+                      void jobsQuery.refetch();
+                    }}
+                    size="small"
+                  >
+                    {jobsQuery.isFetching ? <CircularProgress color="inherit" size={18} /> : <RefreshIcon />}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+          </Box>
         </Stack>
       </Box>
 
@@ -195,7 +321,7 @@ export default function QueueJobDetailsTable() {
               <TableCell>Redis Key</TableCell>
               <TableCell>Type</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell align="right">Duration</TableCell>
+              <TableCell>Progress</TableCell>
               <TableCell align="right">Retries</TableCell>
               <TableCell>Timing</TableCell>
               <TableCell>Message</TableCell>
@@ -223,7 +349,7 @@ export default function QueueJobDetailsTable() {
               </TableRow>
             ) : null}
 
-            {!jobsQuery.isPending && rows.length === 0 ? (
+            {!jobsQuery.isPending && allRows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8}>
                   <Typography color="text.secondary" sx={{ py: 2 }} variant="body2">
@@ -233,7 +359,17 @@ export default function QueueJobDetailsTable() {
               </TableRow>
             ) : null}
 
-            {rows.map(({ redisKey, job }) => (
+            {!jobsQuery.isPending && allRows.length > 0 && filteredRows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8}>
+                  <Typography color="text.secondary" sx={{ py: 2 }} variant="body2">
+                    No jobs match this filter
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : null}
+
+            {filteredRows.map(({ redisKey, job }) => (
               <TableRow hover key={redisKey}>
                 <TableCell
                   sx={{
@@ -255,7 +391,31 @@ export default function QueueJobDetailsTable() {
                     variant="outlined"
                   />
                 </TableCell>
-                <TableCell align="right">{job.data.durationSeconds}s</TableCell>
+                <TableCell sx={{ minWidth: 144 }}>
+                  <Stack spacing={0.75}>
+                    <Box
+                      sx={{
+                        alignItems: 'baseline',
+                        display: 'flex',
+                        gap: 1,
+                        justifyContent: 'space-between',
+                      }}
+                    >
+                      <Typography sx={{ fontWeight: 700 }} variant="body2">
+                        {job.data.durationSeconds}s
+                      </Typography>
+                      <Typography color="text.secondary" variant="caption">
+                        {getProgressPercent(job)}%
+                      </Typography>
+                    </Box>
+                    <LinearProgress
+                      color={getProgressColor(job.status)}
+                      sx={{ borderRadius: 1, height: 6 }}
+                      value={getProgressPercent(job)}
+                      variant="determinate"
+                    />
+                  </Stack>
+                </TableCell>
                 <TableCell align="right">
                   {job.retries}/{job.maxRetries}
                 </TableCell>

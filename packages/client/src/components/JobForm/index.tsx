@@ -2,6 +2,7 @@ import { type FormEventHandler, useCallback, useEffect, useMemo, useState } from
 import SendIcon from '@mui/icons-material/Send';
 import { Alert, Button, MenuItem, Paper, Stack, TextField } from '@mui/material';
 import type { CreateQueueJobRequest, JobType } from '@clo835-project/shared';
+import { lightBlue } from '@mui/material/colors';
 
 const jobsEndpoint = '/api/jobs';
 
@@ -38,6 +39,8 @@ export default function JobForm() {
     const parsedDurationSeconds = Number(durationSeconds);
 
     if (isNaN(parsedDurationSeconds)) return false;
+
+    if (parsedDurationSeconds > 300) return false;
 
     return (
       !isSubmitting &&
@@ -106,13 +109,13 @@ export default function JobForm() {
           />
           <TextField
             inputProps={{ min: 1, max: 300 }}
-            label="Duration"
+            label="Duration (max 300)"
             name="durationSeconds"
             onChange={(event) => {
               setDurationSeconds(event.target.value);
             }}
             size="small"
-            sx={{ minWidth: { sm: 140 } }}
+            sx={{ minWidth: { sm: 200 } }}
             type="number"
             value={durationSeconds}
           />
@@ -120,7 +123,7 @@ export default function JobForm() {
             disabled={!canSubmit}
             loading={isSubmitting}
             startIcon={<SendIcon />}
-            sx={{ minWidth: 120 }}
+            sx={{ minWidth: 120, backgroundColor: lightBlue[600] }}
             type="submit"
             variant="contained"
           >
