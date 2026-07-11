@@ -9,6 +9,7 @@ import {
   type HealthResponse,
   type JobRecord,
   type JobsResponse,
+  type RuntimeConfigResponse,
 } from '@clo835-project/shared';
 
 const port = Number(process.env.MAIN_SERVER_PORT ?? process.env.PORT ?? 3000);
@@ -17,6 +18,7 @@ const redisHost = process.env.REDIS_HOST ?? 'localhost';
 const redisPort = Number(process.env.REDIS_PORT ?? 6379);
 const orchestratorUrl = process.env.ORCHESTRATOR_URL ?? 'http://localhost:3001';
 const adminSecret = process.env.ADMIN_SECRET;
+const ec2PublicIp = process.env.EC2_PUBLIC_IP;
 
 const redis = new Redis({
   host: redisHost,
@@ -97,6 +99,14 @@ app.get('/jobs', async (_request, response) => {
       error: error instanceof Error ? error.message : 'Failed to read jobs',
     });
   }
+});
+
+app.get('/runtime-config', (_request, response) => {
+  const body: RuntimeConfigResponse = {
+    ec2PublicIp: ec2PublicIp || null,
+  };
+
+  response.json(body);
 });
 
 app.delete('/jobs', async (request, response) => {

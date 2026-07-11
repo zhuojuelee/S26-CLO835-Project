@@ -5,11 +5,13 @@ import ArchitectureModal from './components/ArchitectureModal';
 import JobSummaryCards from './components/JobSummaryCards';
 import ArchitectureIcon from '@mui/icons-material/Architecture';
 import { useCallback, useState } from 'react';
-
-const EC2_PUBLIC_IP = import.meta.env.EC2_PUBLIC_IP;
+import { useAtomValue } from 'jotai';
+import { runtimeConfigAtom } from './atoms/runtimeConfigAtom';
 
 export default function App() {
   const [archModalOpen, setArchModalOpen] = useState(false);
+  const { data: runtimeConfigQuery } = useAtomValue(runtimeConfigAtom);
+  const ec2PublicIp = runtimeConfigQuery?.ec2PublicIp;
 
   const onArchModalClose = useCallback(() => {
     setArchModalOpen(false);
@@ -24,19 +26,25 @@ export default function App() {
   }, []);
 
   const onK8DashboardChipClick = useCallback(() => {
+    const isIpHost = /^\d+\.\d+\.\d+\.\d+$/.test(window.location.hostname);
+
     if (window.location.protocol === 'http:') {
-      if (EC2_PUBLIC_IP) {
-        window.open(`https://${EC2_PUBLIC_IP}:30081`, '_blank', 'noopener,noreferrer');
+      if (isIpHost) {
+        window.open(`https://${window.location.hostname}:30081`, '_blank', 'noopener,noreferrer');
         return;
       }
-      alert(
-        'This is currently running on a HTTP protocol, so the dashboard would not work. Please use the public IP to access it at https://<public-ip>/dashboard.',
-      );
+
+      if (ec2PublicIp) {
+        window.open(`https://${ec2PublicIp}:30081`, '_blank', 'noopener,noreferrer');
+        return;
+      }
+
+      alert('Dashboard requires HTTPS. Open it from the EC2 public IP on port 30081.');
       return;
     }
 
-    window.open(`${window.location.href}dashboard`, '_blank', 'noopener,noreferrer');
-  }, []);
+    window.open(new URL('/dashboard', window.location.origin).toString(), '_blank', 'noopener,noreferrer');
+  }, [ec2PublicIp]);
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>

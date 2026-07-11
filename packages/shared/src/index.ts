@@ -88,6 +88,10 @@ export interface DeleteJobsResponse {
   deleted: number;
 }
 
+export interface RuntimeConfigResponse {
+  ec2PublicIp: string | null;
+}
+
 export function getJobKey(jobId: string): string {
   return `${JOB_KEY_PREFIX}${jobId}`;
 }

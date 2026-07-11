@@ -3,35 +3,14 @@ set -euxo pipefail
 
 USER_NAME="ubuntu"
 STUDENT_ID="109920256"
-KIND_VERSION="v0.32.0"
 KIND_NODE_IMAGE="kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5"
-KUBECTL_VERSION="v1.36.1"
 CLUSTER_NAME="clo835-${STUDENT_ID}"
 NODE_PORT="30080"
+KUBERNETES_DASHBAORD_PORT="30081"
 
-DEPLOY_DASHBOARD=($1) || DEPLOY_DASHBOARD="false"
+DEPLOY_DASHBOARD="${1:-false}"
 
-export DEBIAN_FRONTEND=noninteractive
-
-if [ "$(id -u)" -ne 0 ]; then
-  echo "Run this script as root, for example with sudo." >&2
-  exit 1
-fi
-
-# Install Docker Engine from Ubuntu packages.
-apt-get update
-apt-get install -y ca-certificates curl docker.io
-
-systemctl enable --now docker
-usermod -aG docker "${USER_NAME}"
-
-# Install kind.
-curl -fsSLo /tmp/kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
-install -o root -g root -m 0755 /tmp/kind /usr/local/bin/kind
-
-# Install kubectl.
-curl -fsSLo /tmp/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
-install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl
+echo "Kubernetes Dashboard Deployment = ${DEPLOY_DASHBOARD}"
 
 # Create kind cluster with NodePort exposed on the EC2 host.
 cat > /tmp/kind-config.yaml <<KIND_CONFIG
@@ -42,6 +21,10 @@ nodes:
     extraPortMappings:
       - containerPort: ${NODE_PORT}
         hostPort: ${NODE_PORT}
+        listenAddress: "0.0.0.0"
+        protocol: TCP
+      - containerPort: ${KUBERNETES_DASHBAORD_PORT}
+        hostPort: ${KUBERNETES_DASHBAORD_PORT}
         listenAddress: "0.0.0.0"
         protocol: TCP
 KIND_CONFIG
@@ -59,9 +42,6 @@ docker version
 kind version
 kubectl version --client
 kubectl get nodes
-
-newgrp docker
-export KUBECONFIG="$HOME/.kube/config"
 
 NAMESPACE="orch-109920256"
 KEDA_TIMEOUT="90s"
@@ -97,16 +77,16 @@ kubectl rollout status deployment/task-orchestrator-deployment -n "${NAMESPACE}"
 
 echo "Creating k8 dashboard..."
 
-if [[ DEPLOY_DASHBOARD == "true" ]]; then
+if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
   kubectl rollout status deployment/kubernetes-dashboard -n kubernetes-dashboard --timeout="${ROLLOUT_TIMEOUT}"
+  kubectl patch svc kubernetes-dashboard -n kubernetes-dashboard --type='json' -p '[{"op":"replace","path":"/spec/type","value":"NodePort"},{"op":"replace","path":"/spec/ports/0/nodePort","value":30081}]'
   kubectl -n kubernetes-dashboard create serviceaccount admin-user --dry-run=client -o yaml | kubectl apply -f -
   kubectl create clusterrolebinding admin-user --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:admin-user --dry-run=client -o yaml | kubectl apply -f -
 fi
 
-echo "Applying client (nginx) deployment and service..."
-
-if [[ DEPLOY_DASHBOARD == "true" ]] then
+if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
+  echo "Applying service changes..."
   TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
   PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
 
@@ -117,17 +97,15 @@ if [[ DEPLOY_DASHBOARD == "true" ]] then
 
   export EC2_PUBLIC_IP="$PUBLIC_IP"
   echo "Retrieved EC2 Public IP: $EC2_PUBLIC_IP"
-  echo "Injecting IP and applying deployment..."
-  curl -s https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml \
-    | sed '/- name: nginx-container/a \          env:\n            - name: EC2_PUBLIC_IP\n              value: "'"$EC2_PUBLIC_IP"'"' \
-    | kubectl apply -f -
-  kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/service.yaml
-  kubectl rollout status deployment/nginx-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
-else
-  kubectl apply -f  https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml
-  kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/service.yaml
-  kubectl rollout status deployment/nginx-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
+  echo "Injecting IP into main server runtime config..."
+  kubectl set env deployment/main-server-deployment EC2_PUBLIC_IP="${EC2_PUBLIC_IP}" -n "${NAMESPACE}"
+  kubectl rollout status deployment/main-server-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 fi
+
+echo "Applying nginx deployment and service..."
+kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml
+kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/service.yaml
+kubectl rollout status deployment/nginx-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
 echo "Applying bullmq worker deployment and scaledObject..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/deployment.yaml

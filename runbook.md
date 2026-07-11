@@ -9,38 +9,30 @@ The bootstrap uses a mix of code from Lab 3 and includes the set up code for app
 ```bash
 # create script - vi ...
 chmod +x bootstrap.sh
-sudo ./bootstrap.sh
+sudo ./bootstrap.sh <DEPLOY_DASHBOARD?> # Set DELOY_DASHBOARD to true if you want the Kubernetes Dashboard to be deployed
 ```
 
-### [Optional] Adding secrets
+### [Optional] Getting Kubernetes Token and Accessing it via Port Forwarding
 
-Run the following to add the admin secret before bootstrapping
-
-```bash
-kubectl create secret generic secrets --from-literal=ADMIN_SECRET="<the-secret>"
-```
-
-### [Optional] K8 Dashboard via Port Forwarding
-
-Get a token first
+Get a token first by ssh into the EC2 instance and run this command:
 
 ```
 kubectl -n kubernetes-dashboard create token admin-user
 ```
 
+Ensure that your EC2's security group is setup to accept incoming traffic to port `8443`
+
 Run the following in a new terminal, this will forward the port and it will continue to run.
 
 ```
-kubectl port-forward -n kubernetes-dashboard service/kubernetes-dashboard 8443:443 --address=127.0.0.1
+kubectl port-forward svc/kubernetes-dashboard 8443:443 -n kubernetes-dashboard --address 0.0.0.0
 ```
 
-In a new terminal, open a tunnel from on our machine
+On your machine, go to the following URL and use your token from the previous steps to login.
 
 ```
-ssh -i <your.pem> -N -L 8443:127.0.0.1:8443 ubuntu@<ec2_public_ip>
+https://<EC2_PUBLIC_IP>:8443
 ```
-
-Access the dashboard from `https://localhost:8443/`
 
 ## Runbook Required Procedures
 
@@ -52,9 +44,6 @@ There are two ways to access the client:
 
 1. If the client runs through an ALB, use the public domain
 2. If ALB is not used, simply access it via the public IP - `http://<ec2_public_ip>:30080`
-
-> [!NOTE]
-> The `/dashboard` path doesn't work even though `nginx` is setup to proxy to it. This is because it needs a `https` protocol. Since Route53 is disabled for the Lab account, we cannot create a domain using ACM as well.
 
 ### Post a burst of queue jobs and watch KEDA scale BullMQ workers from zero to the cap and back to zero
 
@@ -97,4 +86,4 @@ Expected output is `yes`, then `no`, then `no`. The RoleBinding applies only to 
 
 ### Tear down the project and confirm no leftover resources remain
 
-Run `kind delete cluster --name clo835-109920256`
+Run `sudo kind delete cluster --name clo835-109920256`
