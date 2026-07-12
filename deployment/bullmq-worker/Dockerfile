@@ -8,7 +8,7 @@ RUN yarn install --immutable
 RUN yarn workspace @clo835-project/shared build
 RUN yarn workspace @clo835-project/bullmq-worker build
 
-FROM node:26.5.0-slim AS runtime
+FROM node:26.5.0-slim AS runner
 
 WORKDIR /app
 

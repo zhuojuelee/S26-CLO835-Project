@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euxo pipefail
+set -euo pipefail
 
 USER_NAME="ubuntu"
 STUDENT_ID="109920256"
@@ -9,7 +9,9 @@ NODE_PORT="30080"
 KUBERNETES_DASHBAORD_PORT="30081"
 
 DEPLOY_DASHBOARD="${1:-false}"
+ADMIN_SECRET="${2:-}"
 
+set -x
 echo "🚀 Kubernetes Dashboard Deployment: ${DEPLOY_DASHBOARD}"
 
 # create kind cluster with NodePort exposed on the EC2 host
@@ -68,6 +70,16 @@ kubectl wait --for=condition=Available deployment --all -n keda --timeout="${KED
 echo "📦 Applying main server deployment and service..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/main-server/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/main-server/service.yaml
+
+set +x
+if [[ -n "${ADMIN_SECRET}" ]]; then
+  echo "🔐 Injecting admin secret into main server runtime environment..."
+  kubectl set env deployment/main-server-deployment ADMIN_SECRET="${ADMIN_SECRET}" -n "${NAMESPACE}"
+else
+  echo "⚠️  ADMIN_SECRET argument not provided; admin cache clearing will be disabled."
+fi
+set -x
+
 kubectl rollout status deployment/main-server-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
 echo "📦 Applying task orchestrator deployment and service..."

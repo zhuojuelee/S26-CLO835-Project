@@ -30,8 +30,4 @@ spec:
             - name: REDIS_PORT
               value: "6379"
             - name: ADMIN_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: secrets
-                  key: ADMIN_SECRET
-                  optional: true
+              value: ""

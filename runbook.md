@@ -15,19 +15,21 @@ The instance set up should be:
 - `kubectl`: `v1.36.1`
 - `docker`: Any version the installer pulls
 
-Once it is ready continue with the steps below
+Once it is ready continue with the steps below.
 
 ```bash
 # create script - vi bootstrap.sh
 chmod +x bootstrap.sh
-sudo ./bootstrap.sh <DEPLOY_DASHBOARD?> # Set DELOY_DASHBOARD to true if you want the Kubernetes Dashboard to be deployed
+read -r -s -p "Admin secret: " ADMIN_SECRET
+sudo ./bootstrap.sh <DEPLOY_DASHBOARD?> "${ADMIN_SECRET}" # Set DEPLOY_DASHBOARD to true if you want the Kubernetes Dashboard to be deployed
+unset ADMIN_SECRET
 ```
 
 ### [Optional] Getting Kubernetes Token and Accessing it via Port Forwarding
 
 Get a token first by ssh into the EC2 instance and run this command:
 
-```
+```bash
 kubectl -n kubernetes-dashboard create token admin-user
 ```
 
@@ -35,13 +37,13 @@ Ensure that your EC2's security group is setup to accept incoming traffic to por
 
 Run the following in a new terminal, this will forward the port and it will continue to run.
 
-```
+```bash
 kubectl port-forward svc/kubernetes-dashboard 8443:443 -n kubernetes-dashboard --address 0.0.0.0
 ```
 
 On your machine, go to the following URL and use your token from the previous steps to login.
 
-```
+```bash
 https://<EC2_PUBLIC_IP>:8443
 ```
 
