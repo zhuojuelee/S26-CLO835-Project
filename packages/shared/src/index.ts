@@ -16,6 +16,16 @@ export const RETRYABLE_JOB_STATUSES = [
   'failed',
 ] as const satisfies readonly RetryableJobStatus[];
 
+export const DEFAULT_BULLMQ_JOB_CONFIG = {
+  attempts: 1,
+  removeOnComplete: true,
+  removeOnFail: true,
+  backoff: {
+    type: 'fixed',
+    delay: 1000,
+  },
+};
+
 export interface JobData {
   durationSeconds: number;
   message: string;

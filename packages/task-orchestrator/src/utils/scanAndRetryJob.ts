@@ -1,5 +1,6 @@
 import type { Queue } from 'bullmq';
 import {
+  DEFAULT_BULLMQ_JOB_CONFIG,
   JOB_KEY_PREFIX,
   getJobKey,
   type JobRecord,
@@ -34,9 +35,6 @@ export interface ScanAndRetryJobsResult {
     error: string;
   }>;
 }
-
-const queueRetryAttempts = 3;
-const queueRetryBackoffMs = 1000;
 
 export async function scanAndRetryJobs({
   jobQueue,
@@ -143,14 +141,8 @@ async function dispatchRetry(
     getJobKey(record.jobId),
     { jobId: record.jobId },
     {
-      attempts: queueRetryAttempts,
-      backoff: {
-        type: 'fixed',
-        delay: queueRetryBackoffMs,
-      },
+      ...DEFAULT_BULLMQ_JOB_CONFIG,
       jobId: `${record.jobId}-retry-${record.retries}`,
-      removeOnComplete: true,
-      removeOnFail: false,
     },
   );
 }

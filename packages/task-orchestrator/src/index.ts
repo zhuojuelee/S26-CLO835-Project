@@ -3,6 +3,7 @@ import { CronJob } from 'cron';
 import express from 'express';
 import { Queue } from 'bullmq';
 import {
+  DEFAULT_BULLMQ_JOB_CONFIG,
   JOB_QUEUE_NAME,
   getJobKey,
   type CreateQueueJobRequest,
@@ -88,14 +89,8 @@ app.post('/queueJob', async (request, response) => {
       getJobKey(record.jobId),
       { jobId: record.jobId },
       {
-        attempts: 3,
-        backoff: {
-          type: 'fixed',
-          delay: 1000,
-        },
+        ...DEFAULT_BULLMQ_JOB_CONFIG,
         jobId: record.jobId,
-        removeOnComplete: true,
-        removeOnFail: false,
       },
     );
   } catch (error) {

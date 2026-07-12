@@ -18,11 +18,7 @@ export default function App() {
   }, []);
 
   const onGitHubChipClick = useCallback(() => {
-    window.open(
-      'https://github.com/zhuojuelee/S26-CLO835-Assignment2/tree/master',
-      '_blank',
-      'noopener,noreferrer',
-    );
+    window.open('https://github.com/zhuojuelee/S26-CLO835-Project', '_blank', 'noopener,noreferrer');
   }, []);
 
   const onK8DashboardChipClick = useCallback(() => {

@@ -42,3 +42,9 @@ The orchestrator supports two asynchronous paths:
 - Ephemeral jobs: create a one-shot Kubernetes Job through the native Kubernetes API using the orchestrator ServiceAccount.
 
 It also runs a `cron` to scan and retry "stale" jobs. Job statuses (Records) are managed by workers and the task orchestrator.
+
+## Other Resources
+
+- [Deployment Information](./deployment/README.md)
+- [Bootstrap Script](./bootstrap.sh)
+- [Runbook](./runbook.md)

@@ -6,8 +6,19 @@ This runbook contains the tested demo commands for the project.
 
 The bootstrap uses a mix of code from Lab 3 and includes the set up code for applying the deployments for the project.
 
+> [!WARNING]
+> The bootstrap script assumes you have `kind`, `docker` and `kubectl` installed on the instance. If you have not done that, please run the script `ec2-setup.sh`
+
+The instance set up should be:
+
+- `kind`: `v0.32.0`
+- `kubectl`: `v1.36.1`
+- `docker`: Any version the installer pulls
+
+Once it is ready continue with the steps below
+
 ```bash
-# create script - vi ...
+# create script - vi bootstrap.sh
 chmod +x bootstrap.sh
 sudo ./bootstrap.sh <DEPLOY_DASHBOARD?> # Set DELOY_DASHBOARD to true if you want the Kubernetes Dashboard to be deployed
 ```
@@ -44,33 +55,43 @@ There are two ways to access the client:
 
 1. If the client runs through an ALB, use the public domain
 2. If ALB is not used, simply access it via the public IP - `http://<ec2_public_ip>:30080`
+3. If the kubernetes dashboard is deployed access it via the public IP - `https://<ec2_public_ip>:30081`
 
 ### Post a burst of queue jobs and watch KEDA scale BullMQ workers from zero to the cap and back to zero
 
-Go to ALB domain and spam queue jobs. View pods via:
+Go to the client and post many jobs via the controls. Watch the pods from the K8 dashboard or via:
 
 ```bash
-kubectl get pods -l app=bullmq-worker -n orch-109920256
+kubectl get pods -l app=bullmq-worker -n orch-109920256 -w
 ```
 
 ### Post an ephemeral job and show the orchestrator-created Kubernetes Job and Pod
 
-Go to ALB domain and spam ephemeral jobs. View pods via:
+Go to ALB domain and spam ephemeral jobs. Watch the pods from the K8 dashboard or via:
 
 ```bash
-kubectl get pods -n orch-109920256 | grep "ephemeral-worker-"
+kubectl get pods -l app=ephemeral-worker -n orch-109920256 -w
 ```
 
 ### Prove the main server stays responsive during queue and ephemeral load
 
-Open network tab and show that API is non-blocking
+Open network tab and show that API is non-blocking when jobs are sent. Add `method:POST` in the browser network filter.
 
 ### Kill a BullMQ worker Pod mid-drain and show the queue job is retried or reclaimed
 
 1. Run a long running or multiple BullMQ jobs
 2. Wait for it to scale up
-3. Get the BullMQ pods - `for pod in $(kubectl get pods -l app=bullmq-worker -o jsonpath='{.items[*].metadata.name}'); do kubectl exec $pod -- kill -9 1 & done; wait; echo "All workers crashed."`
-4. Observe on the dashboard and K8 dashboard
+3. Get the BullMQ pods and kill them
+
+```bash
+for pod in $(kubectl get pods -l app=bullmq-worker -o jsonpath='{.items[*].metadata.name}'); do kubectl exec $pod -- kill -9 1 & done; wait; echo "All workers crashed."
+```
+
+4. Observe on the dashboard or K8 dashboard, or via
+
+```bash
+kubectl get pods -l -n orch-109920256 -w
+```
 
 ### Inspect and explain the orchestrator RBAC. Prove it can create jobs in `orch-109920256` and prove it cannot act in any other space
 

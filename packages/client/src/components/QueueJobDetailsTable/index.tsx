@@ -131,7 +131,7 @@ function getTimingRows(job: JobRecord): Array<[string, string]> {
 }
 
 export default function QueueJobDetailsTable() {
-  const jobsQuery = useAtomValue(jobsAtom);
+  const { data: jobs, refetch, isFetching, isError, error, isPending } = useAtomValue(jobsAtom);
   const jobStatusFilter = useAtomValue(jobStatusFilterAtom);
   const jobTypeFilter = useAtomValue(jobTypeFilterAtom);
   const [isPollingEnabled, setIsPollingEnabled] = useAtom(jobsPollingEnabledAtom);
@@ -140,13 +140,13 @@ export default function QueueJobDetailsTable() {
   const [clearJobsError, setClearJobsError] = useState<string | null>(null);
 
   const allRows = useMemo<JobRow[]>(() => {
-    return (jobsQuery.data ?? []).flatMap((jobRecord) => {
+    return (jobs ?? []).flatMap((jobRecord) => {
       return Object.entries(jobRecord).map(([redisKey, job]) => ({
         redisKey,
         job,
       }));
     });
-  }, [jobsQuery.data]);
+  }, [jobs]);
 
   const filteredRows = useMemo(() => {
     return allRows.filter(({ job }) => {
@@ -178,7 +178,7 @@ export default function QueueJobDetailsTable() {
         }
 
         (await response.json()) as DeleteJobsResponse;
-        await jobsQuery.refetch();
+        await refetch();
         return true;
       } catch (error) {
         setClearJobsError(error instanceof Error ? error.message : 'Failed to clear jobs');
@@ -187,7 +187,7 @@ export default function QueueJobDetailsTable() {
         setIsClearingJobs(false);
       }
     },
-    [jobsQuery],
+    [refetch],
   );
 
   return (
@@ -280,13 +280,13 @@ export default function QueueJobDetailsTable() {
                 <span>
                   <IconButton
                     aria-label="Refresh jobs"
-                    disabled={jobsQuery.isFetching}
+                    disabled={isFetching}
                     onClick={() => {
-                      void jobsQuery.refetch();
+                      void refetch();
                     }}
                     size="small"
                   >
-                    {jobsQuery.isFetching ? <CircularProgress color="inherit" size={18} /> : <RefreshIcon />}
+                    {isFetching ? <CircularProgress color="inherit" size={18} /> : <RefreshIcon />}
                   </IconButton>
                 </span>
               </Tooltip>
@@ -308,10 +308,8 @@ export default function QueueJobDetailsTable() {
         open={isClearJobsModalOpen}
       />
 
-      {jobsQuery.isError ? (
-        <Alert severity="error">
-          {jobsQuery.error instanceof Error ? jobsQuery.error.message : 'Failed to fetch jobs'}
-        </Alert>
+      {isError ? (
+        <Alert severity="error">{error instanceof Error ? error.message : 'Failed to fetch jobs'}</Alert>
       ) : null}
 
       <TableContainer component={Paper} variant="outlined">
@@ -329,7 +327,7 @@ export default function QueueJobDetailsTable() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {jobsQuery.isPending ? (
+            {isPending ? (
               <TableRow>
                 <TableCell colSpan={8}>
                   <Box
@@ -349,7 +347,7 @@ export default function QueueJobDetailsTable() {
               </TableRow>
             ) : null}
 
-            {!jobsQuery.isPending && allRows.length === 0 ? (
+            {!isPending && allRows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8}>
                   <Typography color="text.secondary" sx={{ py: 2 }} variant="body2">
@@ -359,7 +357,7 @@ export default function QueueJobDetailsTable() {
               </TableRow>
             ) : null}
 
-            {!jobsQuery.isPending && allRows.length > 0 && filteredRows.length === 0 ? (
+            {!isPending && allRows.length > 0 && filteredRows.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8}>
                   <Typography color="text.secondary" sx={{ py: 2 }} variant="body2">

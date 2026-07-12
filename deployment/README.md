@@ -1,6 +1,6 @@
 # Deployment
 
-Deployment support assets live here, while root-level `manifests/`, `bootstrap.sh`, `runbook.md`, and `evidence/` remain in place so the final submission matches the project rubric.
+Deployment support assets live here.
 
 This directory is reserved for support files such as:
 
@@ -45,7 +45,13 @@ yarn compose:down
 
 The service Dockerfiles still have final runtime stages for production images. When we add the EC2/kind deployment flow, we can build those images directly from the Dockerfiles and tag them for Docker Hub or GHCR.
 
-The production nginx image builds the Vite static assets and serves them directly from nginx. It also proxies `/api` to the main-server Service, so production does not need a separate client container running next to nginx.
+The production nginx image builds the Vite static assets and serves them directly from nginx. It also proxies `/api` to the main-server Service.
+
+If the kubernetes dashboard is deployed, it will also proxy to it, but it has some nuances on what the entry point is. There are three conditions under this architecture:
+
+- via ALB (`http`): The dashboard blocks all non `https` access. To access it, navigate to `https://<ec2_public_ip>:30081` or from the client by clicking the dashbaord chip, which navigates the user to the public IP.
+- via ALB (`https`): Nginx will proxy the user to the dashboard directly
+- via Public IP: Same URL as ALB (`http`)
 
 > [!WARNING]
-> Do not bake application secrets into Docker images. Images should be generic and reusable; secrets belong at runtime through Kubernetes Secrets, GitHub Actions secrets for CI credentials, or local uncommitted environment files. The `ADMIN_SECRET` value used for demo-only admin actions should be provided as a Kubernetes Secret in production.
+> Do not bake application secrets into Docker images. Images should be generic and reusable; secrets belong at runtime through Kubernetes Secrets, GitHub Actions secrets for CI credentials, or local uncommitted environment files. The `ADMIN_SECRET` value used for demo-only. By default, the secret is baked into the image via the build process. Alternatively, it can be provided as a Kubernetes Secret in production.

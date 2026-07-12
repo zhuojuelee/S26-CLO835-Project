@@ -10,9 +10,10 @@ KUBERNETES_DASHBAORD_PORT="30081"
 
 DEPLOY_DASHBOARD="${1:-false}"
 
-echo "Kubernetes Dashboard Deployment = ${DEPLOY_DASHBOARD}"
+echo "🚀 Kubernetes Dashboard Deployment: ${DEPLOY_DASHBOARD}"
 
-# Create kind cluster with NodePort exposed on the EC2 host.
+# create kind cluster with NodePort exposed on the EC2 host
+# 30080 is for nginx and 30081 is for the kubernetes dashboard
 cat > /tmp/kind-config.yaml <<KIND_CONFIG
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -37,7 +38,6 @@ kind export kubeconfig --name "${CLUSTER_NAME}" --kubeconfig "/home/${USER_NAME}
 chown -R "${USER_NAME}:${USER_NAME}" "/home/${USER_NAME}/.kube"
 export KUBECONFIG="/home/${USER_NAME}/.kube/config"
 
-# Verify setup.
 docker version
 kind version
 kubectl version --client
@@ -51,33 +51,34 @@ kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project
 
 kubectl config set-context --current --namespace="${NAMESPACE}"
 
-echo "Bootstrap foundation complete."
+echo "✅ Bootstrap foundation complete."
 
-echo "Applying redis deployment and service..."
+echo "📦 Applying Redis deployment and service..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/redis/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/redis/service.yaml
 kubectl rollout status deployment/redis-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
-echo "Installing and setting up KEDA..."
+echo "⚙️  Installing and setting up KEDA..."
 kubectl apply --server-side -f https://github.com/kedacore/keda/releases/download/v2.20.0/keda-2.20.0.yaml
 kubectl apply --server-side -f https://github.com/kedacore/keda/releases/download/v2.20.0/keda-2.20.0-core.yaml
 kubectl wait --for=condition=Established crd/scaledobjects.keda.sh --timeout="${KEDA_TIMEOUT}"
 kubectl wait --for=condition=Established crd/scaledjobs.keda.sh --timeout="${KEDA_TIMEOUT}"
 kubectl wait --for=condition=Available deployment --all -n keda --timeout="${KEDA_TIMEOUT}"
 
-echo "Applying main server deployment and service..."
+echo "📦 Applying main server deployment and service..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/main-server/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/main-server/service.yaml
 kubectl rollout status deployment/main-server-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
-echo "Applying task orchestrator deployment and service..."
+echo "📦 Applying task orchestrator deployment and service..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/task-orchestrator/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/task-orchestrator/service.yaml
 kubectl rollout status deployment/task-orchestrator-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
-echo "Creating k8 dashboard..."
+echo "🧭 Checking Kubernetes Dashboard setup..."
 
 if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
+  echo "📊 Creating Kubernetes Dashboard..."
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
   kubectl rollout status deployment/kubernetes-dashboard -n kubernetes-dashboard --timeout="${ROLLOUT_TIMEOUT}"
   kubectl patch svc kubernetes-dashboard -n kubernetes-dashboard --type='json' -p '[{"op":"replace","path":"/spec/type","value":"NodePort"},{"op":"replace","path":"/spec/ports/0/nodePort","value":30081}]'
@@ -86,27 +87,27 @@ if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
 fi
 
 if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
-  echo "Applying service changes..."
+  echo "🌐 Applying dashboard service changes..."
   TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
   PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
 
   if [ -z "$PUBLIC_IP" ] || [ "$PUBLIC_IP" == "null" ]; then
-      echo "Error: Could not retrieve EC2 Public IP address."
+      echo "❌ Error: Could not retrieve EC2 Public IP address."
       exit 1
   fi
 
   export EC2_PUBLIC_IP="$PUBLIC_IP"
-  echo "Retrieved EC2 Public IP: $EC2_PUBLIC_IP"
-  echo "Injecting IP into main server runtime config..."
+  echo "✅ Retrieved EC2 Public IP: $EC2_PUBLIC_IP"
+  echo "🔧 Injecting IP into main server runtime config..."
   kubectl set env deployment/main-server-deployment EC2_PUBLIC_IP="${EC2_PUBLIC_IP}" -n "${NAMESPACE}"
   kubectl rollout status deployment/main-server-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 fi
 
-echo "Applying nginx deployment and service..."
+echo "📦 Applying nginx deployment and service..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/service.yaml
 kubectl rollout status deployment/nginx-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
-echo "Applying bullmq worker deployment and scaledObject..."
+echo "📦 Applying BullMQ worker deployment and ScaledObject..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/scaledObject.yaml
