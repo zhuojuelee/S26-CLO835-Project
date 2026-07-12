@@ -73,8 +73,7 @@ kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project
 
 set +x
 if [[ -n "${ADMIN_SECRET}" ]]; then
-  echo "🔐 Injecting admin secret into main server runtime environment..."
-  kubectl set env deployment/main-server-deployment ADMIN_SECRET="${ADMIN_SECRET}" -n "${NAMESPACE}"
+  echo "🔐 ADMIN_SECRET provided"
 else
   echo "⚠️  ADMIN_SECRET argument not provided; admin cache clearing will be disabled."
 fi
@@ -110,10 +109,11 @@ if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
 
   export EC2_PUBLIC_IP="$PUBLIC_IP"
   echo "✅ Retrieved EC2 Public IP: $EC2_PUBLIC_IP"
-  echo "🔧 Injecting IP into main server runtime config..."
-  kubectl set env deployment/main-server-deployment EC2_PUBLIC_IP="${EC2_PUBLIC_IP}" -n "${NAMESPACE}"
-  kubectl rollout status deployment/main-server-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 fi
+
+echo "🔧 Rolling out main server..."
+kubectl set env deployment/main-server-deployment EC2_PUBLIC_IP="${EC2_PUBLIC_IP}" ADMIN_SECRET="${ADMIN_SECRET}" -n "${NAMESPACE}"
+kubectl rollout status deployment/main-server-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
 echo "📦 Applying nginx deployment and service..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml
