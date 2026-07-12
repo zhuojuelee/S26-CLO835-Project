@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:26.5.0-alpine AS build
+FROM node:26.5.0-slim AS build
 WORKDIR /app
 
 COPY . .
