@@ -1,4 +1,4 @@
-FROM node:26.5.0-slim AS build
+FROM node:26.5.0-alpine AS build
 WORKDIR /app
 
 COPY . .
@@ -8,7 +8,7 @@ RUN yarn install --immutable
 RUN yarn workspace @clo835-project/shared build
 RUN yarn workspace @clo835-project/bullmq-worker build
 
-FROM node:26.5.0-slim AS runner
+FROM node:26.5.0-alpine AS runner
 
 WORKDIR /app
 

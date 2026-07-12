@@ -1,4 +1,4 @@
-FROM python:3.13-slim AS runtime
+FROM python:3.13-alpine AS runtime
 
 WORKDIR /app/packages/ephemeral-worker
 

@@ -92,6 +92,7 @@ const worker = new Worker<QueueJobPayload>(
     connection,
     // A stalled BullMQ attempt should fail; the orchestrator owns stale-job retry scheduling.
     maxStalledCount: 0,
+    concurrency: 20,
   },
 );
 
