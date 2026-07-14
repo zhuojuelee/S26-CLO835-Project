@@ -6,7 +6,7 @@ echo "       INTERACTIVE CONFIGURATION         "
 echo "========================================="
 echo ""
 
-read -p "Do you want to deploy X dashboard? (y/n): " DEPLOY_CHOICE
+read -p "Do you want to deploy the Kubernetes Dashboard? (y/n): " DEPLOY_CHOICE
 
 read -s -p "What do you want the admin secret to be? This will be the password to clear the Redis cache: " ADMIN_SECRET_INPUT
 echo ""
@@ -14,10 +14,15 @@ echo ""
 ADMIN_SECRET="${ADMIN_SECRET_INPUT:-}"
 
 if [[ "$DEPLOY_CHOICE" =~ ^[Yy](es)?$ ]]; then
-    DEPLOY_DASHBOARD="true"
+  DEPLOY_DASHBOARD="true"
 else
-    DEPLOY_DASHBOARD="false"
+  DEPLOY_DASHBOARD="false"
 fi
+
+if [ -z "${ADMIN_SECRET_INPUT// }" ]; then
+  echo "Admin secret not provided - Redis cache clear feature is disabled"
+fi
+
 
 echo ""
 echo "========================================="
