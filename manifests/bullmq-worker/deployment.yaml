@@ -18,6 +18,7 @@ spec:
       containers:
         - name: bullmq-worker-container
           image: zjlianlee/clo835-project-bullmq-worker:latest
+          imagePullPolicy: IfNotPresent
           env:
             - name: REDIS_HOST
               value: "redis-service"
@@ -25,3 +26,10 @@ spec:
               value: "6379"
             - name: QUEUE_NAME
               value: "jobQueue"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"

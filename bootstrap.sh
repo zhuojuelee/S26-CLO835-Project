@@ -1,6 +1,32 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+echo "========================================="
+echo "       INTERACTIVE CONFIGURATION         "
+echo "========================================="
+echo ""
+
+read -p "Do you want to deploy X dashboard? (y/n): " DEPLOY_CHOICE
+
+read -s -p "What do you want the admin secret to be? This will be the password to clear the Redis cache: " ADMIN_SECRET_INPUT
+echo ""
+
+ADMIN_SECRET="${ADMIN_SECRET_INPUT:-}"
+
+if [[ "$DEPLOY_CHOICE" =~ ^[Yy](es)?$ ]]; then
+    DEPLOY_DASHBOARD="true"
+else
+    DEPLOY_DASHBOARD="false"
+fi
+
+echo ""
+echo "========================================="
+echo "           SUMMARY OF INPUTS             "
+echo "========================================="
+echo "🚀 Deploy Dashboard:  $DEPLOY_CHOICE"
+echo "🔑 Admin Secret:     ******** (Hidden for security)"
+echo "========================================="
+
 USER_NAME="ubuntu"
 STUDENT_ID="109920256"
 KIND_NODE_IMAGE="kindest/node:v1.36.1@sha256:3489c7674813ba5d8b1a9977baea8a6e553784dab7b84759d1014dbd78f7ebd5"
@@ -8,11 +34,7 @@ CLUSTER_NAME="clo835-${STUDENT_ID}"
 NODE_PORT="30080"
 KUBERNETES_DASHBAORD_PORT="30081"
 
-DEPLOY_DASHBOARD="${1:-false}"
-ADMIN_SECRET="${2:-}"
-
 set -x
-echo "🚀 Kubernetes Dashboard Deployment: ${DEPLOY_DASHBOARD}"
 
 # create kind cluster with NodePort exposed on the EC2 host
 # 30080 is for nginx and 30081 is for the kubernetes dashboard

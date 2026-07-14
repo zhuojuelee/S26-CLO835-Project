@@ -86,6 +86,16 @@ class KubernetesJobRunner implements JobRunner {
                   { name: 'REDIS_HOST', value: process.env.REDIS_HOST },
                   { name: 'REDIS_PORT', value: process.env.REDIS_PORT },
                 ],
+                resources: {
+                  requests: {
+                    cpu: '10m',
+                    memory: '25Mi',
+                  },
+                  limits: {
+                    cpu: '50m',
+                    memory: '35Mi',
+                  },
+                },
               },
             ],
           },

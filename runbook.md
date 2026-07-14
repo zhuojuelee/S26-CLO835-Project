@@ -15,14 +15,15 @@ The instance set up should be:
 - `kubectl`: `v1.36.1`
 - `docker`: Any version the installer pulls
 
-Once it is ready continue with the steps below.
+Once it is ready continue with the steps below. During the bootstrapping process, you will be prompted with two questions:
+
+1. Do you want to deploy the Kubernetes Dashboard - `y/n`
+2. Set the admin secret. If provided, that value will be the password to clear the redis cache. If none was provided, that feature will be disabled.
 
 ```bash
-# create script - vi bootstrap.sh
-chmod +x bootstrap.sh
-read -r -s -p "Admin secret: " ADMIN_SECRET
-sudo ./bootstrap.sh <DEPLOY_DASHBOARD?> "${ADMIN_SECRET}" # Set DEPLOY_DASHBOARD to true if you want the Kubernetes Dashboard to be deployed
-unset ADMIN_SECRET
+git clone https://github.com/zhuojuelee/S26-CLO835-Project.git
+cd S26-CLO835-Project
+sudo ./bootstrap.sh
 ```
 
 ### [Optional] Getting Kubernetes Token and Accessing it via Port Forwarding
@@ -38,7 +39,7 @@ Ensure that your EC2's security group is setup to accept incoming traffic to por
 Run the following in a new terminal, this will forward the port and it will continue to run.
 
 ```bash
-kubectl port-forward svc/kubernetes-dashboard 8443:443 -n kubernetes-dashboard --address 0.0.0.0
+kubectl port-forward svc/kubernetes-dashboard 8443:30081 -n kubernetes-dashboard --address 0.0.0.0
 ```
 
 On your machine, go to the following URL and use your token from the previous steps to login.
@@ -57,7 +58,6 @@ There are two ways to access the client:
 
 1. If the client runs through an ALB, use the public domain
 2. If ALB is not used, simply access it via the public IP - `http://<ec2_public_ip>:30080`
-3. If the kubernetes dashboard is deployed access it via the public IP - `https://<ec2_public_ip>:30081`
 
 ### Post a burst of queue jobs and watch KEDA scale BullMQ workers from zero to the cap and back to zero
 
