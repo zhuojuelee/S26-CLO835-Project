@@ -21,7 +21,7 @@ packages/
   bullmq-worker/          BullMQ queue worker scaled by KEDA
   ephemeral-worker/       Python one-shot worker image used by orchestrator-created Kubernetes Jobs
   shared/                 Shared TypeScript types, constants and helpers
-deployment/               Docker, docker-compose, nginx, and deployment support files
+docker/                   Docker, docker-compose, nginx, and deployment support files
 manifests/                Raw Kubernetes YAMLs
 evidence/                 Demo transcripts and latency/scale evidence
 ```
@@ -45,6 +45,6 @@ It also runs a `cron` to scan and retry "stale" jobs. Job statuses (Records) are
 
 ## Other Resources
 
-- [Deployment Information](./deployment/README.md)
+- [Docker Information](./docker/README.md)
 - [Bootstrap Script](./bootstrap.sh)
 - [Runbook](./runbook.md)

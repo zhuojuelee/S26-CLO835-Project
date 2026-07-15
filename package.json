@@ -17,12 +17,12 @@
     "dev:main": "yarn workspace @clo835-project/main-server dev",
     "dev:orchestrator": "yarn workspace @clo835-project/task-orchestrator dev",
     "dev:worker": "yarn workspace @clo835-project/bullmq-worker dev",
-    "dev:ephemeral": "docker compose --env-file .env -f deployment/docker-compose.yml run --rm ephemeral-worker",
-    "compose:build": "docker compose --env-file .env -f deployment/docker-compose.yml build",
-    "compose:up": "docker compose --env-file .env -f deployment/docker-compose.yml up --build -d --remove-orphans",
-    "compose:logs": "docker compose --env-file .env -f deployment/docker-compose.yml logs -f",
-    "compose:down": "docker compose --env-file .env -f deployment/docker-compose.yml down --remove-orphans",
-    "compose:run:ephemeral": "docker compose --env-file .env -f deployment/docker-compose.yml run --rm ephemeral-worker"
+    "dev:ephemeral": "docker compose --env-file .env -f docker/docker-compose.yml run --rm ephemeral-worker",
+    "compose:build": "docker compose --env-file .env -f docker/docker-compose.yml build",
+    "compose:up": "docker compose --env-file .env -f docker/docker-compose.yml up --build -d --remove-orphans",
+    "compose:logs": "docker compose --env-file .env -f docker/docker-compose.yml logs -f",
+    "compose:down": "docker compose --env-file .env -f docker/docker-compose.yml down --remove-orphans",
+    "compose:run:ephemeral": "docker compose --env-file .env -f docker/docker-compose.yml run --rm ephemeral-worker"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

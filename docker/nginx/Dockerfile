@@ -9,7 +9,7 @@ RUN yarn workspace @clo835-project/client build
 
 FROM nginx:1.27-alpine AS runner
 
-COPY deployment/nginx/nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker/nginx/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/packages/client/dist /usr/share/nginx/html
 
 EXPOSE 80

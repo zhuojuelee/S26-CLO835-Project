@@ -19,7 +19,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: orchestrator-job-manager-109920256
+  name: task-orchestrator-role
   namespace: orch-109920256
   labels:
     component: task-orchestrator
@@ -46,4 +46,4 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: orchestrator-job-manager-109920256
+  name: task-orchestrator-role

@@ -12,7 +12,7 @@ services:
     image: ${IMAGE_REPOSITORY_PREFIX:-clo835-project}/client:${IMAGE_TAG:-local}
     build:
       context: ..
-      dockerfile: deployment/client/Dockerfile
+      dockerfile: docker/client/Dockerfile
       target: build
     command: yarn workspace @clo835-project/client dev
     environment:
@@ -29,7 +29,7 @@ services:
     image: ${IMAGE_REPOSITORY_PREFIX:-clo835-project}/main-server:${IMAGE_TAG:-local}
     build:
       context: ..
-      dockerfile: deployment/main-server/Dockerfile
+      dockerfile: docker/main-server/Dockerfile
       target: build
     command: yarn workspace @clo835-project/main-server dev
     env_file:
@@ -47,7 +47,7 @@ services:
     image: ${IMAGE_REPOSITORY_PREFIX:-clo835-project}/task-orchestrator:${IMAGE_TAG:-local}
     build:
       context: ..
-      dockerfile: deployment/task-orchestrator/Dockerfile
+      dockerfile: docker/task-orchestrator/Dockerfile
       target: build
     command: yarn workspace @clo835-project/task-orchestrator dev
     env_file:
@@ -70,7 +70,7 @@ services:
     image: ${IMAGE_REPOSITORY_PREFIX:-clo835-project}/bullmq-worker:${IMAGE_TAG:-local}
     build:
       context: ..
-      dockerfile: deployment/bullmq-worker/Dockerfile
+      dockerfile: docker/bullmq-worker/Dockerfile
       target: build
     command: yarn workspace @clo835-project/bullmq-worker dev
     env_file:
@@ -86,7 +86,7 @@ services:
     image: ${IMAGE_REPOSITORY_PREFIX:-clo835-project}/ephemeral-worker:${IMAGE_TAG:-local}
     build:
       context: ..
-      dockerfile: deployment/ephemeral-worker/Dockerfile
+      dockerfile: docker/ephemeral-worker/Dockerfile
     command: python src/main.py
     profiles:
       - manual

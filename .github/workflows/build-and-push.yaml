@@ -7,7 +7,7 @@ on:
     paths:
       - '.github/workflows/build-and-push.yaml'
       - 'packages/**'
-      - 'deployment/**'
+      - 'docker/**'
       - 'manifests/**'
       - 'package.json'
       - 'yarn.lock'
@@ -30,15 +30,15 @@ jobs:
       matrix:
         include:
           - image: clo835-project-bullmq-worker
-            dockerfile: deployment/bullmq-worker/Dockerfile
+            dockerfile: docker/bullmq-worker/Dockerfile
           - image: clo835-project-ephemeral-worker
-            dockerfile: deployment/ephemeral-worker/Dockerfile
+            dockerfile: docker/ephemeral-worker/Dockerfile
           - image: clo835-project-main-server
-            dockerfile: deployment/main-server/Dockerfile
+            dockerfile: docker/main-server/Dockerfile
           - image: clo835-project-nginx
-            dockerfile: deployment/nginx/Dockerfile
+            dockerfile: docker/nginx/Dockerfile
           - image: clo835-project-task-orchestrator
-            dockerfile: deployment/task-orchestrator/Dockerfile
+            dockerfile: docker/task-orchestrator/Dockerfile
 
     steps:
       - name: Checkout repository

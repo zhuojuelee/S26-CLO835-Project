@@ -7,7 +7,7 @@ This runbook contains the tested demo commands for the project.
 The bootstrap uses a mix of code from Lab 3 and includes the set up code for applying the deployments for the project.
 
 > [!WARNING]
-> The bootstrap script assumes you have `kind`, `docker` and `kubectl` installed on the instance. If you have not done that, please run the script `ec2-setup.sh`
+> The bootstrap script assumes you have `kind`, `docker` and `kubectl` installed on the instance. If you have not done that, please run the setup script using `sudo ./ec2-setup.sh`
 
 The instance set up should be:
 
@@ -26,7 +26,7 @@ cd S26-CLO835-Project
 sudo ./bootstrap.sh
 ```
 
-### [Optional] Getting Kubernetes Token and Accessing it via Port Forwarding
+### [`Optional`] Getting Kubernetes Token and Accessing it via Port Forwarding
 
 Get a token first by ssh into the EC2 instance and run this command:
 

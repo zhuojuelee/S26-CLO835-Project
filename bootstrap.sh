@@ -23,12 +23,11 @@ if [ -z "${ADMIN_SECRET_INPUT// }" ]; then
   echo "Admin secret not provided - Redis cache clear feature is disabled"
 fi
 
-
 echo ""
 echo "========================================="
 echo "           SUMMARY OF INPUTS             "
 echo "========================================="
-echo "🚀 Deploy Dashboard:  $DEPLOY_CHOICE"
+echo "🚀 Deploy Dashboard:  $DEPLOY_DASHBOARD"
 echo "🔑 Admin Secret:     ******** (Hidden for security)"
 echo "========================================="
 
@@ -41,8 +40,8 @@ KUBERNETES_DASHBAORD_PORT="30081"
 
 set -x
 
-# create kind cluster with NodePort exposed on the EC2 host
-# 30080 is for nginx and 30081 is for the kubernetes dashboard
+# Create kind config file out of tracing visibility
+{ set +x; } 2>/dev/null
 cat > /tmp/kind-config.yaml <<KIND_CONFIG
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -58,47 +57,67 @@ nodes:
         listenAddress: "0.0.0.0"
         protocol: TCP
 KIND_CONFIG
-
 mkdir -p "/home/${USER_NAME}/.kube"
+set -x
 
+# Kind Cluster Creation
 kind create cluster --name "${CLUSTER_NAME}" --image "${KIND_NODE_IMAGE}" --config /tmp/kind-config.yaml --wait 5m
 kind export kubeconfig --name "${CLUSTER_NAME}" --kubeconfig "/home/${USER_NAME}/.kube/config"
 
+{ set +x; } 2>/dev/null
 chown -R "${USER_NAME}:${USER_NAME}" "/home/${USER_NAME}/.kube"
 export KUBECONFIG="/home/${USER_NAME}/.kube/config"
+set -x
 
-docker version
-kind version
-kubectl version --client
+# Quick check
+{ set +x; } 2>/dev/null
+echo "📋 System Environment Verification:"
+docker version --format '  🐳 Docker: {{.Client.Version}} (Client) / {{.Server.Version}} (Server)'
+echo "  📦 Kind:   $(kind version | awk '{print $2}')"
+echo "  ☸️  Kube:   $(kubectl version --client --short 2>/dev/null || kubectl version --client | head -n1)"
+echo "-----------------------------------------"
+set -x
+
 kubectl get nodes
 
 NAMESPACE="orch-109920256"
 KEDA_TIMEOUT="90s"
 ROLLOUT_TIMEOUT="90s"
 
+# Apply bootstrap foundation quietly to trace, showing resources clearly
+{ set +x; } 2>/dev/null
+echo "🏗️  Applying cluster configurations..."
+set -x
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/cluster/config.yaml
-
 kubectl config set-context --current --namespace="${NAMESPACE}"
 
+{ set +x; } 2>/dev/null
 echo "✅ Bootstrap foundation complete."
-
 echo "📦 Applying Redis deployment and service..."
+set -x
+
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/redis/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/redis/service.yaml
 kubectl rollout status deployment/redis-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
+{ set +x; } 2>/dev/null
 echo "⚙️  Installing and setting up KEDA..."
-kubectl apply --server-side -f https://github.com/kedacore/keda/releases/download/v2.20.0/keda-2.20.0.yaml
-kubectl apply --server-side -f https://github.com/kedacore/keda/releases/download/v2.20.0/keda-2.20.0-core.yaml
+set -x
+
+kubectl apply --server-side -f https://github.com/kedacore/keda/releases/download/v2.20.0/keda-2.20.0.yaml >/dev/null
+kubectl apply --server-side -f https://github.com/kedacore/keda/releases/download/v2.20.0/keda-2.20.0-core.yaml >/dev/null
 kubectl wait --for=condition=Established crd/scaledobjects.keda.sh --timeout="${KEDA_TIMEOUT}"
 kubectl wait --for=condition=Established crd/scaledjobs.keda.sh --timeout="${KEDA_TIMEOUT}"
 kubectl wait --for=condition=Available deployment --all -n keda --timeout="${KEDA_TIMEOUT}"
 
+{ set +x; } 2>/dev/null
 echo "📦 Applying main server deployment and service..."
+set -x
+
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/main-server/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/main-server/service.yaml
 
-set +x
+{ set +x; } 2>/dev/null
 if [[ -n "${ADMIN_SECRET}" ]]; then
   echo "🔐 ADMIN_SECRET provided"
 else
@@ -108,45 +127,78 @@ set -x
 
 kubectl rollout status deployment/main-server-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
+{ set +x; } 2>/dev/null
 echo "📦 Applying task orchestrator deployment and service..."
+set -x
+
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/task-orchestrator/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/task-orchestrator/service.yaml
 kubectl rollout status deployment/task-orchestrator-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
+{ set +x; } 2>/dev/null
 echo "🧭 Checking Kubernetes Dashboard setup..."
+set -x
 
 if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
+  { set +x; } 2>/dev/null
   echo "📊 Creating Kubernetes Dashboard..."
+  set -x
   kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
   kubectl rollout status deployment/kubernetes-dashboard -n kubernetes-dashboard --timeout="${ROLLOUT_TIMEOUT}"
   kubectl patch svc kubernetes-dashboard -n kubernetes-dashboard --type='json' -p '[{"op":"replace","path":"/spec/type","value":"NodePort"},{"op":"replace","path":"/spec/ports/0/nodePort","value":30081}]'
-  kubectl -n kubernetes-dashboard create serviceaccount admin-user --dry-run=client -o yaml | kubectl apply -f -
-  kubectl create clusterrolebinding admin-user --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:admin-user --dry-run=client -o yaml | kubectl apply -f -
+  kubectl -n kubernetes-dashboard create serviceaccount admin-user --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+  kubectl create clusterrolebinding admin-user --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:admin-user --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 fi
 
 if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
+  { set +x; } 2>/dev/null
   echo "🌐 Applying dashboard service changes..."
+  set -x
   TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
   PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
 
   if [ -z "$PUBLIC_IP" ] || [ "$PUBLIC_IP" == "null" ]; then
+      { set +x; } 2>/dev/null
       echo "❌ Error: Could not retrieve EC2 Public IP address."
       exit 1
   fi
 
   export EC2_PUBLIC_IP="$PUBLIC_IP"
+  { set +x; } 2>/dev/null
   echo "✅ Retrieved EC2 Public IP: $EC2_PUBLIC_IP"
+  set -x
 fi
 
+{ set +x; } 2>/dev/null
 echo "🔧 Rolling out main server..."
-kubectl set env deployment/main-server-deployment EC2_PUBLIC_IP="${EC2_PUBLIC_IP}" ADMIN_SECRET="${ADMIN_SECRET}" -n "${NAMESPACE}"
+set -x
+kubectl set env deployment/main-server-deployment EC2_PUBLIC_IP="${EC2_PUBLIC_IP:-}" ADMIN_SECRET="${ADMIN_SECRET}" -n "${NAMESPACE}"
 kubectl rollout status deployment/main-server-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
+{ set +x; } 2>/dev/null
 echo "📦 Applying nginx deployment and service..."
+set -x
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/service.yaml
 kubectl rollout status deployment/nginx-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
+{ set +x; } 2>/dev/null
 echo "📦 Applying BullMQ worker deployment and ScaledObject..."
+set -x
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/scaledObject.yaml
+
+if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
+  { set +x; } 2>/dev/null
+
+  echo "🔑 Request for Kubernetes Dashboard admin token..."
+  KUBERNETES_DASHBOARD_ADMIN_TOKEN=$(kubectl -n kubernetes-dashboard create token admin-user)
+
+  echo ""
+  echo "========================================="
+  echo "       Kubernetes Dashboard Token        "
+  echo "========================================="
+  echo ""
+  echo "$KUBERNETES_DASHBOARD_ADMIN_TOKEN"
+  echo ""
+fi
