@@ -2,18 +2,35 @@
 set -euo pipefail
 
 echo "========================================="
-echo "       INTERACTIVE CONFIGURATION         "
+echo "   BOOTSTRAP INTERACTIVE CONFIGURATION   "
 echo "========================================="
 echo ""
 
-read -p "Do you want to deploy the Kubernetes Dashboard? (y/n): " DEPLOY_CHOICE
+read -p "Do you want to deploy the Kubernetes Dashboard? (y/n): " KUBERNETES_DEPLOY_CHOICE
+
+read -p "Do you want to an Application Load Balancer (ALB)? (y/n): " ALB_DEPLOY_CHOICE
+
+if [[ "$ALB_DEPLOY_CHOICE" =~ ^[Yy](es)?$ ]]; then
+  DEPLOY_ALB="true"
+  echo "Please fetch your AWS Credentials from the Lab details page: [AWS Details] --> [AWS CLI] --> [SHOW]"
+  echo ""
+  read -s -p "Enter your AWS Access Key: " AWS_ACCESS_KEY
+  echo ""
+  read -s -p "Enter your AWS Secret Key: " AWS_SECRET_KEY
+  echo ""
+  read -s -p "Enter your AWS Session Token: " AWS_SESSION_TOKEN
+  echo ""
+else
+  DEPLOY_ALB="false"
+  echo "ALB will not be deployed"
+fi
 
 read -s -p "What do you want the admin secret to be? This will be the password to clear the Redis cache: " ADMIN_SECRET_INPUT
 echo ""
 
 ADMIN_SECRET="${ADMIN_SECRET_INPUT:-}"
 
-if [[ "$DEPLOY_CHOICE" =~ ^[Yy](es)?$ ]]; then
+if [[ "$KUBERNETES_DEPLOY_CHOICE" =~ ^[Yy](es)?$ ]]; then
   DEPLOY_DASHBOARD="true"
 else
   DEPLOY_DASHBOARD="false"
@@ -187,6 +204,10 @@ echo "📦 Applying BullMQ worker deployment and ScaledObject..."
 set -x
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/scaledObject.yaml
+
+if [[ "${DEPLOY_ALB}" == "true" ]]; then
+  ./terraform/alb-setup.sh $AWS_ACCESS_KEY $AWS_SECRET_KEY $AWS_SESSION_TOKEN
+fi
 
 if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
   { set +x; } 2>/dev/null

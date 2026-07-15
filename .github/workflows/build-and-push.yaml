@@ -8,11 +8,9 @@ on:
       - '.github/workflows/build-and-push.yaml'
       - 'packages/**'
       - 'docker/**'
-      - 'manifests/**'
       - 'package.json'
       - 'yarn.lock'
       - '.yarnrc.yml'
-      - '.yarn/**'
       - 'tsconfig.base.json'
 
 

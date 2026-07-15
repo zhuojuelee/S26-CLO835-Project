@@ -15,10 +15,11 @@ The instance set up should be:
 - `kubectl`: `v1.36.1`
 - `docker`: Any version the installer pulls
 
-Once it is ready continue with the steps below. During the bootstrapping process, you will be prompted with two questions:
+Once it is ready continue with the steps below. During the bootstrapping process, you will be prompted with some questions:
 
 1. Do you want to deploy the Kubernetes Dashboard - `y/n`
-2. Set the admin secret. If provided, that value will be the password to clear the redis cache. If none was provided, that feature will be disabled.
+2. Do you want to deploy an ALB - `y/n` (If `y` (yes), you will be prompted to enter AWS credentials)
+3. Set the admin secret. If provided, that value will be the password to clear the redis cache. If none was provided, that feature will be disabled.
 
 ```bash
 git clone https://github.com/zhuojuelee/S26-CLO835-Project.git
@@ -81,15 +82,16 @@ Open network tab and show that API is non-blocking when jobs are sent. Add `meth
 
 ### Kill a BullMQ worker Pod mid-drain and show the queue job is retried or reclaimed
 
-1. Run a long running or multiple BullMQ jobs
-2. Wait for it to scale up
-3. Get the BullMQ pods and kill them
+1. Run multiple longer running BullMQ jobs until it starts to scale (several pending jobs)
+2. Get the BullMQ pods and kill them
 
 ```bash
-for pod in $(kubectl get pods -l app=bullmq-worker -o jsonpath='{.items[*].metadata.name}'); do kubectl exec $pod -- kill -9 1 & done; wait; echo "All workers crashed."
+kubectl annotate scaledobject bullmq-worker-scaler keda.sh/paused-replicas=0 -n orch-109920256 --overwrite && \
+kubectl scale deployment bullmq-worker-deployment --replicas=0 -n orch-109920256 && \
+kubectl delete pods -n orch-109920256 -l app=bullmq-worker --force --grace-period=0
 ```
 
-4. Observe on the dashboard or K8 dashboard, or via
+3. Observe on the dashboard or K8 dashboard, or via
 
 ```bash
 kubectl get pods -l -n orch-109920256 -w

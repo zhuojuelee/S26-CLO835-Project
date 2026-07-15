@@ -19,7 +19,7 @@ export const RETRYABLE_JOB_STATUSES = [
 export const DEFAULT_BULLMQ_JOB_CONFIG = {
   attempts: 1,
   removeOnComplete: true,
-  removeOnFail: true,
+  removeOnFail: { count: 0 },
   backoff: {
     type: 'fixed',
     delay: 1000,
