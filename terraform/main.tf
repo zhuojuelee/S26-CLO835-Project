@@ -67,9 +67,7 @@ resource "aws_lb" "alb" {
 
   subnets = [
     data.aws_instance.target_ec2.subnet_id,
-    element(setintersect(
-      setsubtract(data.aws_subnets.all_vpc_subnets.ids, [data.aws_instance.target_ec2.subnet_id])
-    ), 0)
+    element([for id in data.aws_subnets.all_vpc_subnets.ids : id if id != data.aws_instance.target_ec2.subnet_id], 0)
   ]
 }
 

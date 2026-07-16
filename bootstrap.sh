@@ -45,6 +45,7 @@ echo "========================================="
 echo "           SUMMARY OF INPUTS             "
 echo "========================================="
 echo "🚀 Deploy Dashboard:  $DEPLOY_DASHBOARD"
+echo "🌐 Deploy ALB: $DEPLOY_ALB"
 echo "🔑 Admin Secret:     ******** (Hidden for security)"
 echo "========================================="
 
