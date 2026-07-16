@@ -163,6 +163,5 @@ Run the following in `root` directory to ensure the project is torn down (except
 
 ```bash
 sudo kind delete cluster --name clo835-109920256
-sudo chown -R ubuntu:ubuntu terraform
 terraform -chdir=terraform destroy -auto-approve -var-file=terraform.tfvars
 ```

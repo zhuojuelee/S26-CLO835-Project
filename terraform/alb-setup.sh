@@ -47,17 +47,20 @@ echo ""
 
 export DEBIAN_FRONTEND=noninteractive
 
-sudo apt-get update -y && sudo apt-get install -y unzip curl
-TMP_DIR=$(mktemp -d)
+if ! command -v terraform &> /dev/null; then
+  echo: "Terraform not found. Installing..."
 
-LATEST_VERSION=$(curl -sL https://releases.hashicorp.com/terraform/ \
-  | grep -oE '/terraform/[0-9]+\.[0-9]+\.[0-9]+/' \
-  | head -n 1 \
-  | cut -d'/' -f3)
-curl -sSL "https://releases.hashicorp.com/terraform/${LATEST_VERSION}/terraform_${LATEST_VERSION}_linux_amd64.zip" \ -o "$TMP_DIR/terraform.zip"
-unzip -q "$TMP_DIR/terraform.zip" -d "$TMP_DIR"
-sudo mv "$TMP_DIR/terraform" /usr/local/bin/
-rm -rf "$TMP_DIR"
+  sudo apt-get update -y && sudo apt-get install -y unzip curl
+  TMP_DIR=$(mktemp -d)
+  LATEST_VERSION=$(curl -sL https://releases.hashicorp.com/terraform/ \
+    | grep -oE '/terraform/[0-9]+\.[0-9]+\.[0-9]+/' \
+    | head -n 1 \
+    | cut -d'/' -f3)
+  curl -sSL "https://releases.hashicorp.com/terraform/${LATEST_VERSION}/terraform_${LATEST_VERSION}_linux_amd64.zip" -o "$TMP_DIR/terraform.zip"
+  unzip -q "$TMP_DIR/terraform.zip" -d "$TMP_DIR"
+  sudo mv "$TMP_DIR/terraform" /usr/local/bin/
+  rm -rf "$TMP_DIR"
+fi
 
 terraform -v
 
