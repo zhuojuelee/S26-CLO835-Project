@@ -35,14 +35,24 @@ During the bootstrapping process, you will be prompted with some questions:
 ```bash
 git clone https://github.com/zhuojuelee/S26-CLO835-Project.git
 cd S26-CLO835-Project
-sudo -E ./bootstrap.sh
+./bootstrap.sh
 ```
 
 > [!NOTE]
 >
 > - If you deployed a Kubernetes Dashboard, the login token will be shown in the script output at the end
 > - If you deployed an ALB, the public DNS (URL) will be shown in the script output at the end
-> - If you chose not to deploy the ALB, but want to do so later, you can run the following `sudo ./terraform/alb-setup.sh <AWS_ACCESS_KEY> <AWS_SECRET_KEY> <AWS_SESSION_TOKEN>`
+> - If you chose not to deploy the ALB, but want to do so later, export your AWS Credentials first (instructions below) and run `./terraform/alb-setup.sh`.
+
+##### Exporting your AWS creds
+
+Get your credentials from AWS Details in the Lab session
+
+```bash
+export AWS_ACCESS_KEY=<aws_access_key>
+export AWS_SECRET_KEY=<aws_secret_key>
+export AWS_SESSION_TOKEN=<aws_session_token>
+```
 
 <details>
 <summary> (Optional) Getting Kubernetes Token and Accessing it via Port Forwarding </summary>
@@ -83,6 +93,20 @@ There are two ways to access the client:
 
 1. If the client runs through an ALB, use the public domain
 2. If ALB is not used, simply access it via the public IP - `http://<ec2_public_ip>:30080`
+
+### Show commit logs and deployments
+
+Show the commit logs with
+
+```bash
+git log -l
+```
+
+Show the deployments and BullMQ at 0 replicas
+
+```bash
+kubectl get all,scaledobject,sa,role,rolebinding -n orch-109920256
+```
 
 ### Post a burst of queue jobs and watch KEDA scale BullMQ workers from zero to the cap and back to zero
 

@@ -6,10 +6,10 @@ metadata:
 spec:
   scaleTargetRef:
     name: bullmq-worker-deployment
-  minReplicaCount: 1
+  minReplicaCount: 0
   maxReplicaCount: 90
-  pollingInterval: 15 # check every 15s
-  cooldownPeriod: 15 # time to wait after last trigger before scaling down
+  pollingInterval: 5 # check every 15s
+  cooldownPeriod: 10 # time to wait after last trigger before scaling down
   advanced:
     horizontalPodAutoscalerConfig:
       behavior:

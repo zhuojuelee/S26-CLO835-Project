@@ -23,15 +23,24 @@ if [[ "$ALB_DEPLOY_CHOICE" =~ ^[Yy](es)?$ ]]; then
 
   if ! command -v aws &> /dev/null; then
     echo "AWS CLI not found. Installing..."
+    sudo apt-get update -y && sudo apt-get install -y unzip curl
     curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
     unzip -q awscliv2.zip
     sudo ./aws/install
     rm -rf aws awscliv2.zip
   fi
 
-  export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY"
-  export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_KEY"
-  export AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN"
+  TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+  REGION=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region)
+
+  aws configure set aws_access_key_id "$AWS_ACCESS_KEY"
+  aws configure set aws_secret_access_key "$AWS_SECRET_KEY"
+  aws configure set aws_session_token "$AWS_SESSION_TOKEN"
+  aws configure set region "$REGION"
+
+  chmod 700 "$HOME/.aws"
+  chmod 600 "$HOME/.aws/credentials"
+  chmod 600 "$HOME/.aws/config"
 
   echo ""
   echo "Validating AWS credentials..."
@@ -82,7 +91,9 @@ set -x
 
 # Create kind config file out of tracing visibility
 { set +x; } 2>/dev/null
-cat > /tmp/kind-config.yaml <<KIND_CONFIG
+
+KIND_CONFIG_FILE="/tmp/kind-config.clo835-project.yaml"
+cat > "$KIND_CONFIG_FILE" <<KIND_CONFIG
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
@@ -97,11 +108,15 @@ nodes:
         listenAddress: "0.0.0.0"
         protocol: TCP
 KIND_CONFIG
+
 mkdir -p "/home/${USER_NAME}/.kube"
+# ensure ubuntu owns kube directory
+sudo chown -R "${USER_NAME}:${USER_NAME}" "/home/${USER_NAME}/.kube"
+
 set -x
 
 # Kind Cluster Creation
-kind create cluster --name "${CLUSTER_NAME}" --image "${KIND_NODE_IMAGE}" --config /tmp/kind-config.yaml --wait 5m
+kind create cluster --name "${CLUSTER_NAME}" --image "${KIND_NODE_IMAGE}" --config "$KIND_CONFIG_FILE" --wait 5m
 kind export kubeconfig --name "${CLUSTER_NAME}" --kubeconfig "/home/${USER_NAME}/.kube/config"
 
 { set +x; } 2>/dev/null
@@ -229,7 +244,8 @@ kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/scaledObject.yaml
 
 if [[ "${DEPLOY_ALB}" == "true" ]]; then
-  bash ./terraform/alb-setup.sh $AWS_ACCESS_KEY $AWS_SECRET_KEY $AWS_SESSION_TOKEN
+  # the DEPLOY_ALB check will have configured the AWS credentials
+  bash ./terraform/alb-setup.sh
 fi
 
 if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
