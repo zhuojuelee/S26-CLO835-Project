@@ -36,6 +36,9 @@ echo "Detected Region:   $REGION"
 echo "Detected VPC:      $VPC_ID"
 echo "------------------------------------------------"
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
 terraform init
 terraform apply -auto-approve \
   -var="aws_region=$REGION" \

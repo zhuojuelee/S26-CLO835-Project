@@ -206,7 +206,7 @@ kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/scaledObject.yaml
 
 if [[ "${DEPLOY_ALB}" == "true" ]]; then
-  ./terraform/alb-setup.sh $AWS_ACCESS_KEY $AWS_SECRET_KEY $AWS_SESSION_TOKEN
+  bash ./terraform/alb-setup.sh $AWS_ACCESS_KEY $AWS_SECRET_KEY $AWS_SESSION_TOKEN
 fi
 
 if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then

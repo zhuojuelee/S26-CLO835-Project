@@ -18,13 +18,17 @@ The instance set up should be:
 Once it is ready continue with the steps below. During the bootstrapping process, you will be prompted with some questions:
 
 1. Do you want to deploy the Kubernetes Dashboard - `y/n`
-2. Do you want to deploy an ALB - `y/n` (If `y` (yes), you will be prompted to enter AWS credentials)
+2. Do you want to deploy an ALB. If `y` (yes) , you will be prompted to enter AWS credentials. - `y/n`
+
+> [!IMPORTANT]
+> If you want to deploy the ALB - please ensure you use a bigger instance such as m5.large.
+
 3. Set the admin secret. If provided, that value will be the password to clear the redis cache. If none was provided, that feature will be disabled.
 
 ```bash
 git clone https://github.com/zhuojuelee/S26-CLO835-Project.git
 cd S26-CLO835-Project
-sudo ./bootstrap.sh
+sudo -E ./bootstrap.sh
 ```
 
 ### [`Optional`] Getting Kubernetes Token and Accessing it via Port Forwarding

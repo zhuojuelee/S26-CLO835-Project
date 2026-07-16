@@ -11,6 +11,10 @@ cp .env.example .env
 yarn compose:up
 ```
 
+## AWS Setup
+
+Please refer to `runbook.md` [bootstrapping](runbook.md/#bootstrapping) instructions. It includes setting up the EC2 instance as well as the services.
+
 ## Workspace Layout
 
 ```text
