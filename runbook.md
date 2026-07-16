@@ -115,4 +115,4 @@ Expected output is `yes`, then `no`, then `no`. The RoleBinding applies only to 
 
 ### Tear down the project and confirm no leftover resources remain
 
-Run `sudo kind delete cluster --name clo835-109920256`
+Run `sudo kind delete cluster --name clo835-109920256 && terraform destroy -lock=false`

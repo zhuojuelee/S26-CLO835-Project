@@ -12,7 +12,11 @@ provider "aws" {
   token      = var.aws_session_token
 }
 
-data "aws_subnets" "vpc_subnets" {
+data "aws_instance" "target_ec2" {
+  instance_id = var.instance_id
+}
+
+data "aws_subnets" "all_vpc_subnets" {
   filter {
     name   = "vpc-id"
     values = [var.vpc_id]
@@ -60,7 +64,13 @@ resource "aws_lb" "alb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = slice(data.aws_subnets.vpc_subnets.ids, 0, 2) # ALB requires 2+ AZ subnets
+
+  subnets = [
+    data.aws_instance.target_ec2.subnet_id,
+    element(setintersect(
+      setsubtract(data.aws_subnets.all_vpc_subnets.ids, [data.aws_instance.target_ec2.subnet_id])
+    ), 0)
+  ]
 }
 
 # ALB Listener (Listens on 80 -> Forwards to TG on 30080)
