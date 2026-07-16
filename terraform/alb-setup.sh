@@ -5,20 +5,22 @@ echo "Checking AWS credentials..."
 
 if ! command -v aws &> /dev/null; then
   echo "AWS CLI not found. Installing..."
-  sudo apt-get update -y && sudo apt-get install -y unzip curl
-  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-  unzip -q awscliv2.zip
-  sudo ./aws/install
-  rm -rf aws awscliv2.zip
+  {
+    sudo apt-get update -y && sudo apt-get install -y unzip curl
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip -q awscliv2.zip
+    sudo ./aws/install
+    rm -rf aws awscliv2.zip
+  } > /dev/null 2>&1
+    
+  echo "✅ AWS CLI installed successfully"
 fi
 
 # if the entry point is from bootstrap.sh, they most likely will have aws creds configured
 if aws sts get-caller-identity >/dev/null 2>&1; then
   echo "✅ Existing AWS credentials detected"
 else
-
   echo "⚠️ No valid AWS credentials found"
-
   if [[ -z "${AWS_ACCESS_KEY:-}" ]] || [[ -z "${AWS_SECRET_KEY:-}" ]] || [[ -z "${AWS_SESSION_TOKEN:-}" ]]; then
     echo "❌ AWS credentials missing."
     echo ""
@@ -48,18 +50,22 @@ echo ""
 export DEBIAN_FRONTEND=noninteractive
 
 if ! command -v terraform &> /dev/null; then
-  echo: "Terraform not found. Installing..."
+  echo "Terraform not found. Installing..."
 
-  sudo apt-get update -y && sudo apt-get install -y unzip curl
-  TMP_DIR=$(mktemp -d)
-  LATEST_VERSION=$(curl -sL https://releases.hashicorp.com/terraform/ \
-    | grep -oE '/terraform/[0-9]+\.[0-9]+\.[0-9]+/' \
-    | head -n 1 \
-    | cut -d'/' -f3)
-  curl -sSL "https://releases.hashicorp.com/terraform/${LATEST_VERSION}/terraform_${LATEST_VERSION}_linux_amd64.zip" -o "$TMP_DIR/terraform.zip"
-  unzip -q "$TMP_DIR/terraform.zip" -d "$TMP_DIR"
-  sudo mv "$TMP_DIR/terraform" /usr/local/bin/
-  rm -rf "$TMP_DIR"
+  {
+    sudo apt-get update -y && sudo apt-get install -y unzip curl
+    TMP_DIR=$(mktemp -d)
+    LATEST_VERSION=$(curl -sL https://releases.hashicorp.com/terraform/ \
+        | grep -oE '/terraform/[0-9]+\.[0-9]+\.[0-9]+/' \
+        | head -n 1 \
+        | cut -d'/' -f3)
+    curl -sSL "https://releases.hashicorp.com/terraform/${LATEST_VERSION}/terraform_${LATEST_VERSION}_linux_amd64.zip" -o "$TMP_DIR/terraform.zip"
+    unzip -q "$TMP_DIR/terraform.zip" -d "$TMP_DIR"
+    sudo mv "$TMP_DIR/terraform" /usr/local/bin/
+    rm -rf "$TMP_DIR"
+  } > /dev/null 2>&1
+
+  echo "✅ Terraform installed successfully"
 fi
 
 terraform -v

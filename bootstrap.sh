@@ -6,41 +6,48 @@ echo "   BOOTSTRAP INTERACTIVE CONFIGURATION   "
 echo "========================================="
 echo ""
 
-read -p "Do you want to deploy the Kubernetes Dashboard? (y/n): " KUBERNETES_DEPLOY_CHOICE
+read -p "💻 Do you want to deploy the Kubernetes Dashboard? (y/n): " KUBERNETES_DEPLOY_CHOICE
 
-read -p "Do you want to an Application Load Balancer (ALB)? (y/n): " ALB_DEPLOY_CHOICE
+read -p "💻 Do you want to an Application Load Balancer (ALB)? (y/n): " ALB_DEPLOY_CHOICE
 
 if [[ "$ALB_DEPLOY_CHOICE" =~ ^[Yy](es)?$ ]]; then
   DEPLOY_ALB="true"
   echo "Please fetch your AWS Credentials from the Lab details page: [AWS Details] --> [AWS CLI] --> [SHOW]"
   echo ""
-  read -s -p "Enter your AWS Access Key: " AWS_ACCESS_KEY
+  read -s -p "💻 Enter your AWS Access Key: " AWS_ACCESS_KEY
   echo ""
-  read -s -p "Enter your AWS Secret Key: " AWS_SECRET_KEY
+  read -s -p "💻 Enter your AWS Secret Key: " AWS_SECRET_KEY
   echo ""
-  read -s -p "Enter your AWS Session Token: " AWS_SESSION_TOKEN
+  read -s -p "💻 Enter your AWS Session Token: " AWS_SESSION_TOKEN
   echo ""
 
   if ! command -v aws &> /dev/null; then
     echo "AWS CLI not found. Installing..."
-    sudo apt-get update -y && sudo apt-get install -y unzip curl
-    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-    unzip -q awscliv2.zip
-    sudo ./aws/install
-    rm -rf aws awscliv2.zip
+    
+    {
+      sudo apt-get update -y && sudo apt-get install -y unzip curl
+      curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      unzip -q awscliv2.zip
+      sudo ./aws/install
+      rm -rf aws awscliv2.zip
+    } > /dev/null 2>&1
+    
+    echo "✅ AWS CLI installed successfully"
   fi
 
   TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
   REGION=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/placement/region)
 
-  aws configure set aws_access_key_id "$AWS_ACCESS_KEY"
-  aws configure set aws_secret_access_key "$AWS_SECRET_KEY"
-  aws configure set aws_session_token "$AWS_SESSION_TOKEN"
-  aws configure set region "$REGION"
+  {
+    aws configure set aws_access_key_id "$AWS_ACCESS_KEY"
+    aws configure set aws_secret_access_key "$AWS_SECRET_KEY"
+    aws configure set aws_session_token "$AWS_SESSION_TOKEN"
+    aws configure set region "$REGION"
 
-  chmod 700 "$HOME/.aws"
-  chmod 600 "$HOME/.aws/credentials"
-  chmod 600 "$HOME/.aws/config"
+    chmod 700 "$HOME/.aws"
+    chmod 600 "$HOME/.aws/credentials"
+    chmod 600 "$HOME/.aws/config"
+  } > /dev/null 2>&1
 
   echo ""
   echo "Validating AWS credentials..."
@@ -56,7 +63,8 @@ else
   echo "ALB will not be deployed"
 fi
 
-read -s -p "What do you want the admin secret to be? This will be the password to clear the Redis cache: " ADMIN_SECRET_INPUT
+echo ""
+read -s -p "💻 Enter the admin secret. This will be the password to clear the Redis cache: " ADMIN_SECRET_INPUT
 echo ""
 
 ADMIN_SECRET="${ADMIN_SECRET_INPUT:-}"
@@ -243,8 +251,11 @@ set -x
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/scaledObject.yaml
 
+echo ""
+
 if [[ "${DEPLOY_ALB}" == "true" ]]; then
   # the DEPLOY_ALB check will have configured the AWS credentials
+  echo "Setting up ALB now..."
   bash ./terraform/alb-setup.sh
 fi
 
