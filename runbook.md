@@ -2,7 +2,10 @@
 
 This runbook contains the tested demo commands for the project.
 
-## Bootstrapping
+## Instance Setup
+
+> [!IMPORTANT]
+> Minimum Requirement setup - Have an EC2 instance running (Preferbly `m5.large` or any larger instances with at least 25GB of volume storage)
 
 The bootstrap uses a mix of code from Lab 3 and includes the set up code for applying the deployments for the project.
 
@@ -15,13 +18,17 @@ The instance set up should be:
 - `kubectl`: `v1.36.1`
 - `docker`: Any version the installer pulls
 
-Once it is ready continue with the steps below. During the bootstrapping process, you will be prompted with some questions:
+Once it is ready continue with the steps below.
+
+## Bootstraping
+
+During the bootstrapping process, you will be prompted with some questions:
 
 1. Do you want to deploy the Kubernetes Dashboard - `y/n`
 2. Do you want to deploy an ALB. If `y` (yes) , you will be prompted to enter AWS credentials. - `y/n`
 
 > [!IMPORTANT]
-> If you want to deploy the ALB - please ensure you use a bigger instance such as m5.large.
+> If you want to deploy the ALB - please ensure you use a bigger instance such as m5.large and with at least 25GB of volume storage.
 
 3. Set the admin secret. If provided, that value will be the password to clear the redis cache. If none was provided, that feature will be disabled.
 

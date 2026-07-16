@@ -20,6 +20,27 @@ if [[ "$ALB_DEPLOY_CHOICE" =~ ^[Yy](es)?$ ]]; then
   echo ""
   read -s -p "Enter your AWS Session Token: " AWS_SESSION_TOKEN
   echo ""
+
+  if ! command -v aws &> /dev/null; then
+    echo "AWS CLI not found. Installing..."
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip -q awscliv2.zip
+    sudo ./aws/install
+    rm -rf aws awscliv2.zip
+  fi
+
+  export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY"
+  export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_KEY"
+  export AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN"
+  echo ""
+  echo "Validating AWS credentials..."
+
+  if aws sts get-caller-identity >/dev/null 2>&1; then
+      echo "✅ AWS credentials are valid"
+  else
+      echo "❌ Invalid AWS credentials"
+      exit 1
+  fi
 else
   DEPLOY_ALB="false"
   echo "ALB will not be deployed"
@@ -139,7 +160,7 @@ kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project
 if [[ -n "${ADMIN_SECRET}" ]]; then
   echo "🔐 ADMIN_SECRET provided"
 else
-  echo "⚠️  ADMIN_SECRET argument not provided; admin cache clearing will be disabled."
+  echo "⚠️ ADMIN_SECRET argument not provided; admin cache clearing will be disabled."
 fi
 set -x
 
