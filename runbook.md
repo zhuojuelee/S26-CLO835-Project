@@ -20,7 +20,7 @@ The instance set up should be:
 
 Once it is ready continue with the steps below.
 
-## Bootstraping
+## Bootstrapping
 
 During the bootstrapping process, you will be prompted with some questions:
 

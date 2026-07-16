@@ -15,7 +15,7 @@ Once the containers are built, open your browser and go to `http://localhost`
 
 ## AWS Setup
 
-Please refer to `runbook.md` [bootstrapping](runbook.md/#bootstrapping) instructions. It includes setting up the EC2 instance as well as the services.
+Please refer to `runbook.md` [bootstrapping](./runbook.md/#bootstrapping) instructions. It includes setting up the EC2 instance as well as the services.
 
 ## Workspace Layout
 
