@@ -42,7 +42,7 @@ sudo -E ./bootstrap.sh
 >
 > - If you deployed a Kubernetes Dashboard, the login token will be shown in the script output at the end
 > - If you deployed an ALB, the public DNS (URL) will be shown in the script output at the end
-> - If you chose not to deploy the ALB, but want to do so later, you can run the following `bash sudo ./terraform/alb-setup.sh <AWS_ACCESS_KEY> <AWS_SECRET_KEY> <AWS_SESSION_TOKEN>`
+> - If you chose not to deploy the ALB, but want to do so later, you can run the following `sudo ./terraform/alb-setup.sh <AWS_ACCESS_KEY> <AWS_SECRET_KEY> <AWS_SESSION_TOKEN>`
 
 <details>
 <summary> (Optional) Getting Kubernetes Token and Accessing it via Port Forwarding </summary>
