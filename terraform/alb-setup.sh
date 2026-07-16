@@ -39,6 +39,15 @@ echo "------------------------------------------------"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+cat > terraform.tfvars <<EOF
+aws_region         = "$REGION"
+vpc_id             = "$VPC_ID"
+instance_id        = "$INSTANCE_ID"
+aws_access_key     = "$AWS_ACCESS_KEY"
+aws_secret_key     = "$AWS_SECRET_KEY"
+aws_session_token  = "$AWS_SESSION_TOKEN"
+EOF
+
 terraform init
 terraform apply -auto-approve \
   -var="aws_region=$REGION" \
