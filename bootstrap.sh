@@ -32,6 +32,7 @@ if [[ "$ALB_DEPLOY_CHOICE" =~ ^[Yy](es)?$ ]]; then
   export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY"
   export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_KEY"
   export AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN"
+
   echo ""
   echo "Validating AWS credentials..."
 
@@ -67,7 +68,7 @@ echo "           SUMMARY OF INPUTS             "
 echo "========================================="
 echo "🚀 Deploy Dashboard:  $DEPLOY_DASHBOARD"
 echo "🌐 Deploy ALB: $DEPLOY_ALB"
-echo "🔑 Admin Secret:     ******** (Hidden for security)"
+echo "🔑 Admin Secret: ** (Hidden for security)"
 echo "========================================="
 
 USER_NAME="ubuntu"

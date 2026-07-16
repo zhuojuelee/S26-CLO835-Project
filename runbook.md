@@ -38,13 +38,24 @@ cd S26-CLO835-Project
 sudo -E ./bootstrap.sh
 ```
 
-### [`Optional`] Getting Kubernetes Token and Accessing it via Port Forwarding
+> [!NOTE]
+>
+> - If you deployed a Kubernetes Dashboard, the login token will be shown in the script output at the end
+> - If you deployed an ALB, the public DNS (URL) will be shown in the script output at the end
+> - If you chose not to deploy the ALB, but want to do so later, you can run the following `bash sudo ./terraform/alb-setup.sh <AWS_ACCESS_KEY> <AWS_SECRET_KEY> <AWS_SESSION_TOKEN>`
 
-Get a token first by ssh into the EC2 instance and run this command:
+<details>
+<summary> (Optional) Getting Kubernetes Token and Accessing it via Port Forwarding </summary>
+
+#### Obtaining a Token
+
+Get a token first by ssh into the EC2 instance and run this command
 
 ```bash
 kubectl -n kubernetes-dashboard create token admin-user
 ```
+
+#### Port Forwarding
 
 Ensure that your EC2's security group is setup to accept incoming traffic to port `8443`
 
@@ -59,6 +70,8 @@ On your machine, go to the following URL and use your token from the previous st
 ```bash
 https://<EC2_PUBLIC_IP>:8443
 ```
+
+</details>
 
 ## Runbook Required Procedures
 

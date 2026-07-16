@@ -1,15 +1,9 @@
 variable "aws_region" { type = string }
 variable "vpc_id" { type = string }
 variable "instance_id" { type = string }
-variable "aws_access_key" { type = string }
-variable "aws_secret_key" { type = string }
-variable "aws_session_token" { type = string }
 
 provider "aws" {
-  region     = var.aws_region
-  access_key = var.aws_access_key
-  secret_key = var.aws_secret_key
-  token      = var.aws_session_token
+  region = var.aws_region
 }
 
 data "aws_instance" "target_ec2" {

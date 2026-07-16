@@ -5,6 +5,11 @@ AWS_ACCESS_KEY=$1
 AWS_SECRET_KEY=$2
 AWS_SESSION_TOKEN=$3
 
+# export here in case script was ran by itself
+export AWS_ACCESS_KEY_ID="$AWS_ACCESS_KEY"
+export AWS_SECRET_ACCESS_KEY="$AWS_SECRET_KEY"
+export AWS_SESSION_TOKEN="$AWS_SESSION_TOKEN"
+
 if [ -z "$AWS_ACCESS_KEY" ] || [ -z "$AWS_SECRET_KEY" ] || [ -z "$AWS_SESSION_TOKEN" ]; then
     echo "❌ Error: All three AWS Access Key, Secret Key, Access Token are required to proceed."
     exit 1
@@ -43,16 +48,7 @@ cat > terraform.tfvars <<EOF
 aws_region         = "$REGION"
 vpc_id             = "$VPC_ID"
 instance_id        = "$INSTANCE_ID"
-aws_access_key     = "$AWS_ACCESS_KEY"
-aws_secret_key     = "$AWS_SECRET_KEY"
-aws_session_token  = "$AWS_SESSION_TOKEN"
 EOF
 
 terraform init
-terraform apply -auto-approve \
-  -var="aws_region=$REGION" \
-  -var="vpc_id=$VPC_ID" \
-  -var="instance_id=$INSTANCE_ID" \
-  -var="aws_access_key=$AWS_ACCESS_KEY" \
-  -var="aws_secret_key=$AWS_SECRET_KEY" \
-  -var="aws_session_token=$AWS_SESSION_TOKEN"
+terraform apply -auto-approve -var-file="terraform.tfvars"
