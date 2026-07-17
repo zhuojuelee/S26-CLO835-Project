@@ -95,8 +95,6 @@ CLUSTER_NAME="clo835-${STUDENT_ID}"
 NODE_PORT="30080"
 KUBERNETES_DASHBAORD_PORT="30081"
 
-set -x
-
 # Create kind config file out of tracing visibility
 { set +x; } 2>/dev/null
 
@@ -121,8 +119,6 @@ mkdir -p "/home/${USER_NAME}/.kube"
 # ensure ubuntu owns kube directory
 sudo chown -R "${USER_NAME}:${USER_NAME}" "/home/${USER_NAME}/.kube"
 
-set -x
-
 # Kind Cluster Creation
 kind create cluster --name "${CLUSTER_NAME}" --image "${KIND_NODE_IMAGE}" --config "$KIND_CONFIG_FILE" --wait 5m
 kind export kubeconfig --name "${CLUSTER_NAME}" --kubeconfig "/home/${USER_NAME}/.kube/config"
@@ -130,7 +126,6 @@ kind export kubeconfig --name "${CLUSTER_NAME}" --kubeconfig "/home/${USER_NAME}
 { set +x; } 2>/dev/null
 chown -R "${USER_NAME}:${USER_NAME}" "/home/${USER_NAME}/.kube"
 export KUBECONFIG="/home/${USER_NAME}/.kube/config"
-set -x
 
 # Quick check
 { set +x; } 2>/dev/null
@@ -139,7 +134,6 @@ docker version --format '  🐳 Docker: {{.Client.Version}} (Client) / {{.Server
 echo "  📦 Kind:   $(kind version | awk '{print $2}')"
 echo "  ☸️  Kube:   $(kubectl version --client --short 2>/dev/null || kubectl version --client | head -n1)"
 echo "-----------------------------------------"
-set -x
 
 kubectl get nodes
 
@@ -148,41 +142,29 @@ KEDA_TIMEOUT="90s"
 ROLLOUT_TIMEOUT="90s"
 
 # Apply bootstrap foundation quietly to trace, showing resources clearly
-{ set +x; } 2>/dev/null
 echo "🏗️  Applying cluster configurations..."
-set -x
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/cluster/config.yaml
 kubectl config set-context --current --namespace="${NAMESPACE}"
 
-{ set +x; } 2>/dev/null
 echo "✅ Bootstrap foundation complete."
 echo "📦 Applying Redis deployment and service..."
-set -x
 
+# Apply redis
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/redis/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/redis/service.yaml
 kubectl rollout status deployment/redis-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
-{ set +x; } 2>/dev/null
+# Setup KEDA
 echo "⚙️  Installing and setting up KEDA..."
-set -x
-
 kubectl apply --server-side -f https://github.com/kedacore/keda/releases/download/v2.20.0/keda-2.20.0.yaml >/dev/null
 kubectl apply --server-side -f https://github.com/kedacore/keda/releases/download/v2.20.0/keda-2.20.0-core.yaml >/dev/null
 kubectl wait --for=condition=Established crd/scaledobjects.keda.sh --timeout="${KEDA_TIMEOUT}"
 kubectl wait --for=condition=Established crd/scaledjobs.keda.sh --timeout="${KEDA_TIMEOUT}"
 kubectl wait --for=condition=Available deployment --all -n keda --timeout="${KEDA_TIMEOUT}"
 
-{ set +x; } 2>/dev/null
-echo "📦 Applying main server deployment and service..."
-set -x
-
-kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/main-server/deployment.yaml
-kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/main-server/service.yaml
-
-{ set +x; } 2>/dev/null
+# Setting up secrets
 if [[ -n "${ADMIN_SECRET}" ]]; then
-  echo "🔐 ADMIN_SECRET provided"
+  echo "🔐 ADMIN_SECRET provided, setting up secrets..."
 
   kubectl create secret generic admin-secret \
     --from-literal=ADMIN_SECRET="$ADMIN_SECRET" \
@@ -191,22 +173,18 @@ if [[ -n "${ADMIN_SECRET}" ]]; then
 else
   echo "⚠️ ADMIN_SECRET argument not provided; admin cache clearing will be disabled."
 fi
-set -x
 
+echo "📦 Applying main server deployment and service..."
+kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/main-server/deployment.yaml
+kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/main-server/service.yaml
 kubectl rollout status deployment/main-server-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
-{ set +x; } 2>/dev/null
 echo "📦 Applying task orchestrator deployment and service..."
-set -x
-
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/task-orchestrator/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/task-orchestrator/service.yaml
 kubectl rollout status deployment/task-orchestrator-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
-{ set +x; } 2>/dev/null
 echo "🧭 Checking Kubernetes Dashboard setup..."
-set -x
-
 if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
   { set +x; } 2>/dev/null
   echo "📊 Creating Kubernetes Dashboard..."
@@ -219,45 +197,37 @@ if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
 fi
 
 if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
-  { set +x; } 2>/dev/null
   echo "🌐 Applying dashboard service changes..."
-  set -x
   TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
   PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
 
   if [ -z "$PUBLIC_IP" ] || [ "$PUBLIC_IP" == "null" ]; then
-      { set +x; } 2>/dev/null
       echo "❌ Error: Could not retrieve EC2 Public IP address."
       exit 1
   fi
 
   export EC2_PUBLIC_IP="$PUBLIC_IP"
-  { set +x; } 2>/dev/null
   echo "✅ Retrieved EC2 Public IP: $EC2_PUBLIC_IP"
-  set -x
 fi
 
-{ set +x; } 2>/dev/null
+# Applying main server
 echo "🔧 Rolling out main server..."
-set -x
 kubectl set env deployment/main-server-deployment EC2_PUBLIC_IP="${EC2_PUBLIC_IP:-}" -n "${NAMESPACE}"
 kubectl rollout status deployment/main-server-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
-{ set +x; } 2>/dev/null
+# Applying nginx + client
 echo "📦 Applying nginx deployment and service..."
-set -x
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/nginx/service.yaml
 kubectl rollout status deployment/nginx-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
-{ set +x; } 2>/dev/null
+# Applying BullMQ worker
 echo "📦 Applying BullMQ worker deployment and ScaledObject..."
-set -x
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/scaledObject.yaml
 
+set -x
 echo ""
-
 if [[ "${DEPLOY_ALB}" == "true" ]]; then
   # the DEPLOY_ALB check will have configured the AWS credentials
   echo "Setting up ALB now..."
@@ -265,7 +235,6 @@ if [[ "${DEPLOY_ALB}" == "true" ]]; then
 fi
 
 if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
-  { set +x; } 2>/dev/null
 
   echo "🔑 Request for Kubernetes Dashboard admin token..."
   KUBERNETES_DASHBOARD_ADMIN_TOKEN=$(kubectl -n kubernetes-dashboard create token admin-user)

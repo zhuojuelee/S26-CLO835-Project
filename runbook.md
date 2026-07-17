@@ -176,6 +176,6 @@ Expected output is `yes`, then `no`, then `no`. The RoleBinding applies only to 
 Run the following in `root` directory to ensure the project is torn down (except the EC2 instance):
 
 ```bash
-sudo kind delete cluster --name clo835-109920256
+kind delete cluster --name clo835-109920256
 terraform -chdir=terraform destroy -auto-approve -var-file=terraform.tfvars
 ```
