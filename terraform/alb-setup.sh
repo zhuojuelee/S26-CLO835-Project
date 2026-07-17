@@ -92,3 +92,13 @@ EOF
 
 terraform init
 terraform apply -auto-approve -var-file="terraform.tfvars"
+
+{ set +x; } 2>/dev/null
+ALB_DNS=$(terraform output -raw alb_url)
+echo ""
+echo "========================================="
+echo "                ALB URL                  "
+echo "========================================="
+echo ""
+echo "$ALB_DNS"
+echo ""
