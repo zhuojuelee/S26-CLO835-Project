@@ -130,13 +130,13 @@ Open network tab and show that API is non-blocking when jobs are sent. Add `meth
 
 ### Kill a BullMQ worker Pod mid-drain and show the queue job is retried or reclaimed
 
-1. Run multiple longer running BullMQ jobs until it starts to scale (several pending jobs)
+1. Kick-off multiple (longer) running BullMQ jobs until it starts to scale (several pending jobs)
 2. Get the BullMQ pods and kill them
 
 ```bash
 kubectl annotate scaledobject bullmq-worker-scaler keda.sh/paused-replicas=0 -n orch-109920256 --overwrite && \
-kubectl scale deployment bullmq-worker-deployment --replicas=0 -n orch-109920256 && \
-kubectl delete pods -n orch-109920256 -l app=bullmq-worker --force --grace-period=0
+  kubectl scale deployment bullmq-worker-deployment --replicas=0 -n orch-109920256 && \
+  kubectl delete pods -n orch-109920256 -l app=bullmq-worker --force --grace-period=0
 ```
 
 3. Observe on the dashboard or K8 dashboard, or via
@@ -144,6 +144,20 @@ kubectl delete pods -n orch-109920256 -l app=bullmq-worker --force --grace-perio
 ```bash
 kubectl get pods -l -n orch-109920256 -w
 ```
+
+<details>
+<summary>(Optional) Kill ephemeral worker pod and observe the retry mechanism</summary>
+
+1. Kick-off a few ephemeral jobs
+2. Get the ephemeral worker pods and kill them
+
+```bash
+kubectl delete pods -n orch-109920256 -l app=ephemeral-worker --force --grace-period=0
+```
+
+3. Observe on the client dashboard - the retry count should increment
+
+</details>
 
 ### Inspect and explain the orchestrator RBAC. Prove it can create jobs in `orch-109920256` and prove it cannot act in any other space
 

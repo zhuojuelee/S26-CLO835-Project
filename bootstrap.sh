@@ -183,6 +183,11 @@ kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project
 { set +x; } 2>/dev/null
 if [[ -n "${ADMIN_SECRET}" ]]; then
   echo "🔐 ADMIN_SECRET provided"
+
+  kubectl create secret generic admin-secret \
+    --from-literal=ADMIN_SECRET="$ADMIN_SECRET" \
+    --namespace="$NAMESPACE" \
+    --dry-run=client -o yaml | kubectl apply -f -
 else
   echo "⚠️ ADMIN_SECRET argument not provided; admin cache clearing will be disabled."
 fi
@@ -235,7 +240,7 @@ fi
 { set +x; } 2>/dev/null
 echo "🔧 Rolling out main server..."
 set -x
-kubectl set env deployment/main-server-deployment EC2_PUBLIC_IP="${EC2_PUBLIC_IP:-}" ADMIN_SECRET="${ADMIN_SECRET}" -n "${NAMESPACE}"
+kubectl set env deployment/main-server-deployment EC2_PUBLIC_IP="${EC2_PUBLIC_IP:-}" -n "${NAMESPACE}"
 kubectl rollout status deployment/main-server-deployment -n "${NAMESPACE}" --timeout="${ROLLOUT_TIMEOUT}"
 
 { set +x; } 2>/dev/null
