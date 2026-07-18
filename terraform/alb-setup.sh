@@ -90,6 +90,7 @@ vpc_id             = "$VPC_ID"
 instance_id        = "$INSTANCE_ID"
 EOF
 
+set -x
 terraform init
 terraform apply -auto-approve -var-file="terraform.tfvars"
 

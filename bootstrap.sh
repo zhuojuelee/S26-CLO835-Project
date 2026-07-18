@@ -235,7 +235,6 @@ echo "📦 Applying BullMQ worker deployment and ScaledObject..."
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/deployment.yaml
 kubectl apply -f https://raw.githubusercontent.com/zhuojuelee/S26-CLO835-Project/refs/heads/main/manifests/bullmq-worker/scaledObject.yaml
 
-set -x
 echo ""
 if [[ "${DEPLOY_ALB}" == "true" ]]; then
   # the DEPLOY_ALB check will have configured the AWS credentials
@@ -245,10 +244,7 @@ fi
 
 { set +x; } 2>/dev/null
 if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
-
-  echo "🔑 Request for Kubernetes Dashboard admin token..."
   KUBERNETES_DASHBOARD_ADMIN_TOKEN=$(kubectl -n kubernetes-dashboard create token admin-user)
-
   echo ""
   echo "========================================="
   echo "       Kubernetes Dashboard Token        "
