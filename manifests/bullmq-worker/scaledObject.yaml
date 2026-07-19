@@ -6,8 +6,8 @@ metadata:
 spec:
   scaleTargetRef:
     name: bullmq-worker-deployment
-  minReplicaCount: 0
-  maxReplicaCount: 90
+  minReplicaCount: 1
+  maxReplicaCount: 15
   pollingInterval: 5 # check every 15s
   cooldownPeriod: 10 # time to wait after last trigger before scaling down
   advanced:

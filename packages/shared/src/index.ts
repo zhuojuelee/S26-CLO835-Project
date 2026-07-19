@@ -9,7 +9,7 @@ export type RetryableJobStatus = Exclude<JobStatus, 'completed'>;
 export type UnixTimestampMilliseconds = number;
 
 export const DEFAULT_JOB_MAX_RETRIES = 3;
-export const JOB_STALE_DURATION_MULTIPLIER = 10;
+export const JOB_STALE_DURATION_MULTIPLIER = 5;
 export const RETRYABLE_JOB_STATUSES = [
   'pending',
   'inProgress',
@@ -19,7 +19,7 @@ export const RETRYABLE_JOB_STATUSES = [
 export const DEFAULT_BULLMQ_JOB_CONFIG = {
   attempts: 1,
   removeOnComplete: true,
-  removeOnFail: { count: 0 },
+  removeOnFail: false,
   backoff: {
     type: 'fixed',
     delay: 1000,

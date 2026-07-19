@@ -118,6 +118,8 @@ Go to the client and post many jobs via the controls. Watch the pods from the K8
 kubectl get pods -l app=bullmq-worker -n orch-109920256 -w
 ```
 
+- Click here for evidence [report](/evidence/1-bullmq-burst/report.md)
+
 ### 2. Post an ephemeral job and show the orchestrator-created Kubernetes Job and Pod
 
 Go to ALB domain and spam ephemeral jobs. Watch the pods from the K8 dashboard or via:
@@ -126,9 +128,13 @@ Go to ALB domain and spam ephemeral jobs. Watch the pods from the K8 dashboard o
 kubectl get pods -l app=ephemeral-worker -n orch-109920256 -w
 ```
 
+- Click here for evidence [report](/evidence/2-ephemeral-demo/report.md)
+
 ### 3. Prove the main server stays responsive during queue and ephemeral load
 
 Open network tab and show that API is non-blocking when jobs are sent. Add `method:POST` in the browser network filter.
+
+- Click here for evidence [report](/evidence/3-prove-non-blocking/report.md)
 
 ### 4. Kill a BullMQ worker Pod mid-drain and show the queue job is retried or reclaimed
 
@@ -161,6 +167,8 @@ kubectl delete pods -n orch-109920256 -l app=ephemeral-worker --force --grace-pe
 
 </details>
 
+- Click here for evidence [report](/evidence/4-kill-bullmq-worker/report.md)
+
 ### 5. Inspect and explain the orchestrator RBAC. Prove it can create jobs in `orch-109920256` and prove it cannot act in any other space
 
 Run the following checks
@@ -173,6 +181,8 @@ kubectl auth can-i list pods --as=system:serviceaccount:orch-109920256:orchestra
 
 Expected output is `yes`, then `no`, then `no`. The RoleBinding applies only to Pods running as `orchestrator-service-account-109920256`; other services in the namespace do not inherit it unless their Deployment explicitly sets the same `serviceAccountName`.
 
+- Click here for evidence [report](/evidence/5-prove-rbac/report.md)
+
 ### 6.Tear down the project and confirm no leftover resources remain
 
 Run the following in `root` directory to ensure the project is torn down (except the EC2 instance):
@@ -181,3 +191,5 @@ Run the following in `root` directory to ensure the project is torn down (except
 kind delete cluster --name clo835-109920256
 terraform -chdir=terraform destroy -auto-approve -var-file=terraform.tfvars
 ```
+
+- Click here for evidence [report](/evidence/6-teardown/report.md)
