@@ -1,6 +1,6 @@
 # Runbook
 
-This runbook contains the tested demo commands for the project.
+This runbook contains the demo commands for the project.
 
 ## Instance Setup
 
@@ -14,11 +14,13 @@ The bootstrap uses a mix of code from Lab 3 and includes the set up code for app
 
 The instance set up should be:
 
-- `kind`: `v0.32.0`
-- `kubectl`: `v1.36.1`
-- `docker`: Any version the installer pulls
+| Package   | Version                         |
+| --------- | ------------------------------- |
+| `kind`    | `v0.32.0`                       |
+| `kubectl` | `v1.36.1`                       |
+| `docker`  | Any version the installer pulls |
 
-Once it is ready continue with the steps below.
+Once it is ready, continue with the steps below.
 
 ## Bootstrapping
 
@@ -108,7 +110,7 @@ Show the deployments and BullMQ at 0 replicas
 kubectl get all,scaledobject,sa,role,rolebinding -n orch-109920256
 ```
 
-### Post a burst of queue jobs and watch KEDA scale BullMQ workers from zero to the cap and back to zero
+### 1. Post a burst of queue jobs and watch KEDA scale BullMQ workers from zero to the cap and back to zero
 
 Go to the client and post many jobs via the controls. Watch the pods from the K8 dashboard or via:
 
@@ -116,7 +118,7 @@ Go to the client and post many jobs via the controls. Watch the pods from the K8
 kubectl get pods -l app=bullmq-worker -n orch-109920256 -w
 ```
 
-### Post an ephemeral job and show the orchestrator-created Kubernetes Job and Pod
+### 2. Post an ephemeral job and show the orchestrator-created Kubernetes Job and Pod
 
 Go to ALB domain and spam ephemeral jobs. Watch the pods from the K8 dashboard or via:
 
@@ -124,11 +126,11 @@ Go to ALB domain and spam ephemeral jobs. Watch the pods from the K8 dashboard o
 kubectl get pods -l app=ephemeral-worker -n orch-109920256 -w
 ```
 
-### Prove the main server stays responsive during queue and ephemeral load
+### 3. Prove the main server stays responsive during queue and ephemeral load
 
 Open network tab and show that API is non-blocking when jobs are sent. Add `method:POST` in the browser network filter.
 
-### Kill a BullMQ worker Pod mid-drain and show the queue job is retried or reclaimed
+### 4. Kill a BullMQ worker Pod mid-drain and show the queue job is retried or reclaimed
 
 1. Kick-off multiple (longer) running BullMQ jobs until it starts to scale (several pending jobs)
 2. Get the BullMQ pods and kill them
@@ -159,7 +161,7 @@ kubectl delete pods -n orch-109920256 -l app=ephemeral-worker --force --grace-pe
 
 </details>
 
-### Inspect and explain the orchestrator RBAC. Prove it can create jobs in `orch-109920256` and prove it cannot act in any other space
+### 5. Inspect and explain the orchestrator RBAC. Prove it can create jobs in `orch-109920256` and prove it cannot act in any other space
 
 Run the following checks
 
@@ -171,7 +173,7 @@ kubectl auth can-i list pods --as=system:serviceaccount:orch-109920256:orchestra
 
 Expected output is `yes`, then `no`, then `no`. The RoleBinding applies only to Pods running as `orchestrator-service-account-109920256`; other services in the namespace do not inherit it unless their Deployment explicitly sets the same `serviceAccountName`.
 
-### Tear down the project and confirm no leftover resources remain
+### 6.Tear down the project and confirm no leftover resources remain
 
 Run the following in `root` directory to ensure the project is torn down (except the EC2 instance):
 

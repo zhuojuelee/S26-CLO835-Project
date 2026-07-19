@@ -2,20 +2,33 @@
 
 This repository is a Yarn workspace monorepo that demonstrates asynchronous job handling, queue-backed workers, KEDA scaling, and native Kubernetes API job creation.
 
-## Local Environment Setup
+## Local Setup
 
-Local Docker Compose runs use a root `.env` file:
+### Prerequisites
+
+Ensure that you have the following:
+
+- NodeJs + Yarn - Even better if you use `volta` instead
+- Python3 + Pip
+- Docker
+
+### Running the app
+
+Local Docker Compose runs use a root `.env` file
 
 ```bash
 cp .env.example .env
-yarn compose:up
+yarn install # install node dependencies
+cd packages/ephemeral-worker
+pip install -r requirements.txt # install python dependencies
+yarn compose:up # from repo root
 ```
 
 Once the containers are built, open your browser and go to `http://localhost`
 
-## AWS Setup
+## Setting up on AWS (Prod)
 
-Please refer to `runbook.md` [bootstrapping](./runbook.md/#bootstrapping) instructions. It includes setting up the EC2 instance as well as the services.
+Please refer to `runbook.md` [bootstrapping](./runbook.md/#bootstrapping) instructions. It includes [setting up the EC2](./ec2-setup.sh) instance as well as the services.
 
 ## Workspace Layout
 
