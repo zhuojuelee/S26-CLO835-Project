@@ -201,11 +201,11 @@ if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
   kubectl create clusterrolebinding admin-user --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:admin-user --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 fi
 
+
+TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
 if [[ "${DEPLOY_DASHBOARD}" == "true" ]]; then
   echo "🌐 Applying dashboard service changes..."
-  TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
-  PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-ipv4)
-
   if [ -z "$PUBLIC_IP" ] || [ "$PUBLIC_IP" == "null" ]; then
       echo "❌ Error: Could not retrieve EC2 Public IP address."
       exit 1
@@ -240,6 +240,14 @@ if [[ "${DEPLOY_ALB}" == "true" ]]; then
   # the DEPLOY_ALB check will have configured the AWS credentials
   echo "Setting up ALB now..."
   bash ./terraform/alb-setup.sh
+else
+  echo ""
+  echo "========================================="
+  echo "              Client URL                 "
+  echo "========================================="
+  echo ""
+  echo "http://$PUBLIC_IP:30080"
+  echo ""
 fi
 
 { set +x; } 2>/dev/null

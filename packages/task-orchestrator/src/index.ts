@@ -35,7 +35,6 @@ const retryCron = CronJob.from({
   cronTime: '*/5 * * * * *',
   onTick: async () => {
     const result = await scanAndRetryJobs({
-      jobQueue,
       jobRunner,
     });
 
@@ -90,6 +89,8 @@ app.post('/queueJob', async (request, response) => {
       { jobId: record.jobId },
       {
         ...DEFAULT_BULLMQ_JOB_CONFIG,
+        // BullMQ attempts includes the initial attempt, while maxRetries does not.
+        attempts: record.maxRetries + 1,
         jobId: record.jobId,
       },
     );

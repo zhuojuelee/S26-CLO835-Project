@@ -1,10 +1,15 @@
 import { hostname } from 'node:os';
 import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
-import { JOB_QUEUE_NAME, getJobKey, type JobRecord, type QueueJobPayload } from '@clo835-project/shared';
+import {
+  DEFAULT_JOB_MAX_RETRIES,
+  JOB_QUEUE_NAME,
+  getJobKey,
+  type JobRecord,
+  type QueueJobPayload,
+} from '@clo835-project/shared';
 import {
   completeJobRecord,
-  createRetryJobRecord,
   failJobRecord,
   startJobRecord,
   updateJobProgress,
@@ -46,7 +51,18 @@ async function readJobRecord(jobId: string): Promise<JobRecord> {
 }
 
 async function writeJobRecord(jobId: string, record: JobRecord): Promise<void> {
-  await redis.set(getJobKey(jobId), JSON.stringify(record));
+  const key = getJobKey(jobId);
+  const currentJson = await redis.get(key);
+
+  if (currentJson) {
+    const currentRecord = JSON.parse(currentJson) as JobRecord;
+
+    if (currentRecord.retries > record.retries) {
+      return;
+    }
+  }
+
+  await redis.set(key, JSON.stringify(record));
 }
 
 function getStartOutput(record: JobRecord): string {
@@ -65,7 +81,9 @@ const worker = new Worker<QueueJobPayload>(
 
     try {
       const totalSeconds = Math.max(1, record.data.durationSeconds);
+      const retries = Math.min(Math.max(record.retries, job.attemptsStarted - 1), record.maxRetries);
 
+      record = { ...record, retries };
       let inProgressRecord = startJobRecord(record, getStartOutput(record));
       record = inProgressRecord;
       await writeJobRecord(jobId, record);
@@ -91,8 +109,8 @@ const worker = new Worker<QueueJobPayload>(
   },
   {
     connection,
-    // A stalled BullMQ attempt should fail; the orchestrator owns stale-job retry scheduling.
-    maxStalledCount: 1,
+    maxStalledCount: DEFAULT_JOB_MAX_RETRIES,
+    maxStartedAttempts: DEFAULT_JOB_MAX_RETRIES + 1,
     concurrency: 5,
   },
 );
@@ -105,18 +123,8 @@ worker.on('failed', (job, error) => {
   console.error(`${serviceName} failed job ${job?.data.jobId ?? 'unknown'}: ${error.message}`);
 });
 
-worker.on('stalled', async (jobId) => {
+worker.on('stalled', (jobId) => {
   console.warn(`${serviceName} detected stalled queue job ${jobId}`);
-  const record = await redis.get(getJobKey(jobId));
-
-  if (!record) {
-    console.error(`${serviceName} failed job ${jobId ?? 'unknown'}: Stalled job but found no record`);
-    return;
-  }
-
-  const parsedRecord = JSON.parse(record);
-  const retryRecord = createRetryJobRecord({ record: parsedRecord, now: Date.now() });
-  await redis.set(getJobKey(jobId), JSON.stringify(retryRecord));
 });
 
 worker.on('error', (error) => {

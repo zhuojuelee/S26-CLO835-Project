@@ -1,13 +1,4 @@
-import type { Queue } from 'bullmq';
-import {
-  DEFAULT_BULLMQ_JOB_CONFIG,
-  JOB_KEY_PREFIX,
-  getJobKey,
-  type JobRecord,
-  type PendingJobRecord,
-  type QueueJobPayload,
-  type UnixTimestampMilliseconds,
-} from '@clo835-project/shared';
+import { JOB_KEY_PREFIX, type JobRecord, type UnixTimestampMilliseconds } from '@clo835-project/shared';
 import {
   createRetryJobRecord,
   failJobRecord,
@@ -18,7 +9,6 @@ import type { JobRunner } from './getJobRunner.js';
 import redis from '../modules/redis/index.js';
 
 export interface ScanAndRetryJobsOptions {
-  jobQueue: Queue<QueueJobPayload>;
   jobRunner: JobRunner;
   now?: UnixTimestampMilliseconds;
 }
@@ -37,7 +27,6 @@ export interface ScanAndRetryJobsResult {
 }
 
 export async function scanAndRetryJobs({
-  jobQueue,
   jobRunner,
   now = Date.now(),
 }: ScanAndRetryJobsOptions): Promise<ScanAndRetryJobsResult> {
@@ -73,6 +62,11 @@ export async function scanAndRetryJobs({
       try {
         const record = JSON.parse(value) as JobRecord;
 
+        // BullMQ owns retries for queue jobs. This scanner only retries ephemeral jobs.
+        if (record.jobType !== 'ephemeral') {
+          continue;
+        }
+
         if (!isRetryableJobRecord(record) || !isStaleJob(record, now)) {
           continue;
         }
@@ -100,7 +94,7 @@ export async function scanAndRetryJobs({
         await redis.set(key, JSON.stringify(retryRecord));
 
         try {
-          await dispatchRetry(retryRecord, jobQueue, jobRunner);
+          await jobRunner.run(retryRecord.jobId, retryRecord.retries);
           result.retried += 1;
         } catch (error) {
           const failedRecord = failJobRecord(
@@ -125,26 +119,6 @@ export async function scanAndRetryJobs({
   } while (cursor !== '0');
 
   return result;
-}
-
-async function dispatchRetry(
-  record: PendingJobRecord,
-  jobQueue: Queue<QueueJobPayload>,
-  jobRunner: JobRunner,
-): Promise<void> {
-  if (record.jobType === 'ephemeral') {
-    await jobRunner.run(record.jobId, record.retries);
-    return;
-  }
-
-  await jobQueue.add(
-    getJobKey(record.jobId),
-    { jobId: record.jobId },
-    {
-      ...DEFAULT_BULLMQ_JOB_CONFIG,
-      jobId: `${record.jobId}-retry-${record.retries}`,
-    },
-  );
 }
 
 function getErrorMessage(error: unknown): string {
