@@ -42,13 +42,24 @@ def get_start_output(record: dict[str, Any]) -> str:
     return f"Started retry {retries}/{record.get('maxRetries', retries)} by {WORKER_NAME}"
 
 
+def append_output(record: dict[str, Any], message: str) -> list[str]:
+    current_output = record.get("results", {}).get("output", [])
+
+    if isinstance(current_output, str):
+        current_output = [current_output] if current_output else []
+    elif not isinstance(current_output, list):
+        current_output = []
+
+    return [*current_output, message]
+
+
 def start_job_record(record: dict[str, Any]) -> dict[str, Any]:
     now = now_ms()
     started_record = {
         **record,
         "status": "inProgress",
         "results": {
-            "output": get_start_output(record),
+            "output": append_output(record, get_start_output(record)),
         },
         "updatedAt": now,
         "startedAt": now,
@@ -61,7 +72,7 @@ def update_job_progress(record: dict[str, Any], output: str) -> dict[str, Any]:
     return {
         **record,
         "results": {
-            "output": output,
+            "output": append_output(record, output),
         },
         "updatedAt": now_ms(),
     }
@@ -73,7 +84,10 @@ def complete_job_record(record: dict[str, Any]) -> dict[str, Any]:
         **record,
         "status": "completed",
         "results": {
-            "output": f"{record['data']['message']} completed by {WORKER_NAME}",
+            "output": append_output(
+                record,
+                f"{record['data']['message']} completed by {WORKER_NAME}",
+            ),
         },
         "updatedAt": now,
         "endedAt": now,
@@ -86,7 +100,7 @@ def fail_job_record(record: dict[str, Any], error: Exception) -> dict[str, Any]:
         **record,
         "status": "failed",
         "results": {
-            "output": str(error),
+            "output": append_output(record, str(error)),
         },
         "updatedAt": now,
         "endedAt": now,

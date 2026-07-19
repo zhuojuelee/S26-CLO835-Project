@@ -1,10 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import HistoryIcon from '@mui/icons-material/History';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import { keyframes } from '@emotion/react';
 import {
   Alert,
   Box,
+  Button,
   Chip,
   CircularProgress,
   FormControlLabel,
@@ -23,7 +25,12 @@ import {
   Typography,
 } from '@mui/material';
 import { useAtom, useAtomValue } from 'jotai';
-import type { DeleteJobsResponse, JobRecord } from '@clo835-project/shared';
+import {
+  getLatestJobOutput,
+  normalizeJobOutput,
+  type DeleteJobsResponse,
+  type JobRecord,
+} from '@clo835-project/shared';
 import {
   jobsAtom,
   jobsPollingEnabledAtom,
@@ -31,6 +38,7 @@ import {
   jobTypeFilterAtom,
 } from '../../atoms/jobAtom';
 import ClearCacheConfirmationModal from '../ClearCacheConfirmationModal';
+import JobOutputModal from '../JobOutputModal';
 import TableFilterChips from './TableFilterChips';
 
 const jobsEndpoint = '/api/jobs';
@@ -138,6 +146,7 @@ export default function QueueJobDetailsTable() {
   const [isClearJobsModalOpen, setIsClearJobsModalOpen] = useState(false);
   const [isClearingJobs, setIsClearingJobs] = useState(false);
   const [clearJobsError, setClearJobsError] = useState<string | null>(null);
+  const [selectedOutputJob, setSelectedOutputJob] = useState<JobRecord | null>(null);
 
   const allRows = useMemo<JobRow[]>(() => {
     return (jobs ?? []).flatMap((jobRecord) => {
@@ -308,6 +317,15 @@ export default function QueueJobDetailsTable() {
         open={isClearJobsModalOpen}
       />
 
+      <JobOutputModal
+        jobId={selectedOutputJob?.jobId ?? ''}
+        messages={normalizeJobOutput(selectedOutputJob?.results.output)}
+        onClose={() => {
+          setSelectedOutputJob(null);
+        }}
+        open={selectedOutputJob !== null}
+      />
+
       {isError ? (
         <Alert severity="error">{error instanceof Error ? error.message : 'Failed to fetch jobs'}</Alert>
       ) : null}
@@ -434,7 +452,24 @@ export default function QueueJobDetailsTable() {
                 </TableCell>
                 <TableCell sx={{ maxWidth: 220, overflowWrap: 'anywhere' }}>{job.data.message}</TableCell>
                 <TableCell sx={{ maxWidth: 360, overflowWrap: 'anywhere' }}>
-                  {job.results.output || emptyValue}
+                  <Stack spacing={0.75} sx={{ alignItems: 'flex-start' }}>
+                    <Typography variant="body2">
+                      {getLatestJobOutput(job.results.output) || emptyValue}
+                    </Typography>
+                    {(job.status === 'completed' || job.status === 'failed') &&
+                    normalizeJobOutput(job.results.output).length > 0 ? (
+                      <Button
+                        onClick={() => {
+                          setSelectedOutputJob(job);
+                        }}
+                        size="small"
+                        startIcon={<HistoryIcon />}
+                        variant="text"
+                      >
+                        View all ({normalizeJobOutput(job.results.output).length})
+                      </Button>
+                    ) : null}
+                  </Stack>
                 </TableCell>
               </TableRow>
             ))}

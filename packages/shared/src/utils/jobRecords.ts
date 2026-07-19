@@ -37,7 +37,7 @@ export function createPendingJobRecord({
   jobType,
   data,
   maxRetries,
-  results = { output: '' },
+  results = { output: [] },
   retries = 0,
   now = Date.now(),
 }: CreatePendingJobRecordOptions): PendingJobRecord {
@@ -66,7 +66,10 @@ export function createRetryJobRecord({
     status: 'pending',
     data: record.data,
     results: {
-      output: `Retry ${retries}/${record.maxRetries} scheduled after stale ${record.status} job`,
+      output: appendJobOutput(
+        record.results.output,
+        `Retry ${retries}/${record.maxRetries} scheduled after stale ${record.status} job`,
+      ),
     },
     retries,
     maxRetries: record.maxRetries,
@@ -86,7 +89,7 @@ export function startJobRecord(
     status: 'inProgress',
     data: record.data,
     results: {
-      output,
+      output: appendJobOutput(record.results.output, output),
     },
     retries: record.retries,
     maxRetries: record.maxRetries,
@@ -104,7 +107,7 @@ export function updateJobProgress(
   return {
     ...record,
     results: {
-      output,
+      output: appendJobOutput(record.results.output, output),
     },
     updatedAt: now,
   };
@@ -119,7 +122,7 @@ export function completeJobRecord(
     ...record,
     status: 'completed',
     results: {
-      output,
+      output: appendJobOutput(record.results.output, output),
     },
     updatedAt: now,
     endedAt: now,
@@ -137,7 +140,7 @@ export function failJobRecord(
     status: 'failed',
     data: record.data,
     results: {
-      output,
+      output: appendJobOutput(record.results.output, output),
     },
     retries: record.retries,
     maxRetries: record.maxRetries,
@@ -182,4 +185,24 @@ function getTimestamp(value: unknown): UnixTimestampMilliseconds | undefined {
   }
 
   return value;
+}
+
+export function normalizeJobOutput(output: unknown): string[] {
+  if (Array.isArray(output)) {
+    return output.filter((message): message is string => typeof message === 'string');
+  }
+
+  if (typeof output === 'string' && output.length > 0) {
+    return [output];
+  }
+
+  return [];
+}
+
+export function getLatestJobOutput(output: unknown): string {
+  return normalizeJobOutput(output).at(-1) ?? '';
+}
+
+function appendJobOutput(output: unknown, message: string): string[] {
+  return [...normalizeJobOutput(output), message];
 }

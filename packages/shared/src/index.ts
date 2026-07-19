@@ -32,7 +32,7 @@ export interface JobData {
 }
 
 export interface JobResults {
-  output: string;
+  output: string[];
 }
 
 interface BaseJobRecord {

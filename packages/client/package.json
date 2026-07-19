@@ -11,7 +11,7 @@
     "lint": "echo \"No lint configured yet for @clo835-project/client\""
   },
   "dependencies": {
-    "@clo835-project/shared": "0.1.0",
+    "@clo835-project/shared": "workspace:*",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^7.0.0",

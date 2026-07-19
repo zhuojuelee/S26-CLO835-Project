@@ -13,6 +13,7 @@ import {
   type JobRecord,
   type QueueJobPayload,
 } from '@clo835-project/shared';
+import { getLatestJobOutput } from '@clo835-project/shared/utils';
 import { redisConnection } from './modules/redis/index.js';
 import { getJobRunner } from './utils/getJobRunner.js';
 import { createJobRecord, markJobFailed } from './utils/records.js';
@@ -98,7 +99,7 @@ app.post('/queueJob', async (request, response) => {
     const failedRecord = await markJobFailed(record, error, 'Failed to enqueue queue job');
 
     response.status(500).json({
-      error: failedRecord.results.output,
+      error: getLatestJobOutput(failedRecord.results.output),
       queueName,
       ...failedRecord,
     });
@@ -131,7 +132,7 @@ app.post('/spawnJob', async (request, response) => {
     const failedRecord = await markJobFailed(record, error, 'Failed to spawn ephemeral job');
 
     response.status(500).json({
-      error: failedRecord.results.output,
+      error: getLatestJobOutput(failedRecord.results.output),
       runner: jobRunner.name,
       ...failedRecord,
     });

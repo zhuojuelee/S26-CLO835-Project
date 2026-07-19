@@ -2,6 +2,7 @@ import { JOB_KEY_PREFIX, type JobRecord, type UnixTimestampMilliseconds } from '
 import {
   createRetryJobRecord,
   failJobRecord,
+  getLatestJobOutput,
   isRetryableJobRecord,
   isStaleJob,
 } from '@clo835-project/shared/utils';
@@ -106,7 +107,7 @@ export async function scanAndRetryJobs({
           result.errors.push({
             key,
             jobId: retryRecord.jobId,
-            error: failedRecord.results.output,
+            error: getLatestJobOutput(failedRecord.results.output),
           });
         }
       } catch (error) {

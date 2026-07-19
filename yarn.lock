@@ -220,7 +220,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@clo835-project/bullmq-worker@workspace:packages/bullmq-worker"
   dependencies:
-    "@clo835-project/shared": "npm:0.1.0"
+    "@clo835-project/shared": "workspace:*"
     bullmq: "npm:^5.50.0"
     ioredis: "npm:^5.6.0"
     tsdown: "npm:^0.22.4"
@@ -233,7 +233,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@clo835-project/client@workspace:packages/client"
   dependencies:
-    "@clo835-project/shared": "npm:0.1.0"
+    "@clo835-project/shared": "workspace:*"
     "@emotion/react": "npm:^11.14.0"
     "@emotion/styled": "npm:^11.14.0"
     "@mui/icons-material": "npm:^7.0.0"
@@ -256,7 +256,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@clo835-project/main-server@workspace:packages/main-server"
   dependencies:
-    "@clo835-project/shared": "npm:0.1.0"
+    "@clo835-project/shared": "workspace:*"
     "@types/cors": "npm:^2.8.17"
     "@types/express": "npm:^5.0.0"
     cors: "npm:^2.8.5"
@@ -268,7 +268,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@clo835-project/shared@npm:0.1.0, @clo835-project/shared@workspace:packages/shared":
+"@clo835-project/shared@workspace:*, @clo835-project/shared@workspace:packages/shared":
   version: 0.0.0-use.local
   resolution: "@clo835-project/shared@workspace:packages/shared"
   dependencies:
@@ -280,7 +280,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@clo835-project/task-orchestrator@workspace:packages/task-orchestrator"
   dependencies:
-    "@clo835-project/shared": "npm:0.1.0"
+    "@clo835-project/shared": "workspace:*"
     "@kubernetes/client-node": "npm:^1.0.0"
     "@types/cors": "npm:^2.8.17"
     "@types/express": "npm:^5.0.0"

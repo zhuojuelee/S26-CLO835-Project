@@ -12,7 +12,7 @@
     "lint": "echo \"No lint configured yet for @clo835-project/bullmq-worker\""
   },
   "dependencies": {
-    "@clo835-project/shared": "0.1.0",
+    "@clo835-project/shared": "workspace:*",
     "bullmq": "^5.50.0",
     "ioredis": "^5.6.0"
   },
