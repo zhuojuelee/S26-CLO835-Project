@@ -142,9 +142,7 @@ Open network tab and show that API is non-blocking when jobs are sent. Add `meth
 2. Get the BullMQ pods and kill them
 
 ```bash
-kubectl annotate scaledobject bullmq-worker-scaler keda.sh/paused-replicas=0 -n orch-109920256 --overwrite && \
-  kubectl scale deployment bullmq-worker-deployment --replicas=0 -n orch-109920256 && \
-  kubectl delete pods -n orch-109920256 -l app=bullmq-worker --force --grace-period=0
+kubectl delete pods -n orch-109920256 -l app=bullmq-worker --force --grace-period=0
 ```
 
 3. Observe on the dashboard or K8 dashboard, or via

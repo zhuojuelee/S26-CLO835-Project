@@ -19,7 +19,7 @@ const serviceName = 'bullmq-worker';
 const redisHost = process.env.REDIS_HOST ?? 'localhost';
 const redisPort = Number(process.env.REDIS_PORT ?? 6379);
 const queueName = process.env.QUEUE_NAME ?? JOB_QUEUE_NAME;
-const workerId = `${serviceName}-${hostname()}`;
+const workerId = hostname();
 
 const connection = {
   host: redisHost,
