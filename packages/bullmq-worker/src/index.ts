@@ -4,6 +4,7 @@ import { Redis } from 'ioredis';
 import { JOB_QUEUE_NAME, getJobKey, type JobRecord, type QueueJobPayload } from '@clo835-project/shared';
 import {
   completeJobRecord,
+  createRetryJobRecord,
   failJobRecord,
   startJobRecord,
   updateJobProgress,
@@ -104,8 +105,18 @@ worker.on('failed', (job, error) => {
   console.error(`${serviceName} failed job ${job?.data.jobId ?? 'unknown'}: ${error.message}`);
 });
 
-worker.on('stalled', (jobId) => {
+worker.on('stalled', async (jobId) => {
   console.warn(`${serviceName} detected stalled queue job ${jobId}`);
+  const record = await redis.get(getJobKey(jobId));
+
+  if (!record) {
+    console.error(`${serviceName} failed job ${jobId ?? 'unknown'}: Stalled job but found no record`);
+    return;
+  }
+
+  const parsedRecord = JSON.parse(record);
+  const retryRecord = createRetryJobRecord({ record: parsedRecord, now: Date.now() });
+  await redis.set(getJobKey(jobId), JSON.stringify(retryRecord));
 });
 
 worker.on('error', (error) => {
