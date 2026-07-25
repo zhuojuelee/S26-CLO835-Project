@@ -67,3 +67,5 @@ It also runs a `cron` to scan and retry "stale" jobs. Job statuses (Records) are
 - [Docker Information](./docker/README.md)
 - [Bootstrap Script](./bootstrap.sh)
 - [Runbook](./runbook.md)
+- [Project Results](./evidence/) - Shown as `reports.md`
+- KEDA Version used in this project - `v2.20.0`
